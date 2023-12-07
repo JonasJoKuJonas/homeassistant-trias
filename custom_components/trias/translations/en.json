@@ -1,0 +1,70 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "url": "URL",
+          "api_key": "API-Key"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {},
+    "step": {
+      "search_station": {
+        "title": "Search Location",
+        "description": "Enter Location name to search",
+        "data": {
+          "search_value": "Location Name",
+          "station": "Locations"
+        },
+        "data_description": {
+          "station": "Select Location you want to add \nSelect search to search again"
+        }
+      },
+      "stops": {
+        "title": "Stops",
+        "description": "Stops that will be created as Sensors",
+        "data": {
+          "stop_id_dict": "Stop List",
+          "add_stop": "Add new Stop"
+        },
+        "data_description": {
+          "stop_id_dict": "Remove key to remove Sensor",
+          "add_stop": "Toggle to Search a stop"
+        }
+      },
+      "trips": {
+        "title": "Trips",
+        "description": "Trips that will be created as Sensors",
+        "data": {
+          "trips": "Trips List",
+          "add_stop": "Add new Trip"
+        },
+        "data_description": {
+          "trips": "Remove key to remove Sensor \nRename key to rename Sensor",
+          "add_stop": "Toggle to add new Trip"
+        }
+      },
+      "trip_name": {
+        "title": "Name Trips",
+        "data": {
+          "trip_name": "Trip Name",
+          "trip": "Trip Data"
+        },
+        "data_description": {
+          "trip": "Start and End of trip"
+        }
+      }
+    }
+  }
+}

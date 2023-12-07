@@ -1,0 +1,7 @@
+{
+  "name": "Trias",
+  "render_readme": true, 
+  "zip_release": true,
+  "filename": "trias.zip",
+  "homeassistant": "2023.11.0"
+}
