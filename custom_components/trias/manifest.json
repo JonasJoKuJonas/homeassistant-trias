@@ -4,9 +4,9 @@
   "codeowners": ["@JonasJoKuJonas"],
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/trias",
-  "issue_tracker": "https://github.com/JonasJoKuJonas/homeassistant-trias/issues",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/JonasJoKuJonas/homeassistant-trias/issues",
   "requirements": [],
   "version": "v0.0.0"
 }
