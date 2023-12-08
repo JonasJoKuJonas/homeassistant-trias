@@ -18,13 +18,13 @@ jobs:
       - name: validation
         uses: home-assistant/actions/hassfest@master
 
-  #validate-hacs:
-  #  name: HACS validation
-  #  runs-on: "ubuntu-latest"
-  #  steps:
-  #    - name: checkout
-  #      uses: actions/checkout@v3
-  #    - name: validation 
-  #      uses: hacs/action@main
-  #      with:
-  #        category: "integration"
+  validate-hacs:
+    name: HACS validation
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: validation 
+        uses: hacs/action@main
+        with:
+          category: "integration"
