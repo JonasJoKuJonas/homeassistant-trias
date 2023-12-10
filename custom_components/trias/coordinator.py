@@ -128,11 +128,15 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 to_station_data = self.client.get_station_data(to_location_id)
 
             except ApiError as error:
-                _LOGGER.error("Could not request data for %s reason %s", stop_id, error)
+                _LOGGER.error(
+                    "Could not request data for %s reason %s", trip_name, error
+                )
                 stop_dict["ok"] = False
                 continue
             except InvalidLocationName as error:
-                _LOGGER.error("Could not request data for %s reason %s", stop_id, error)
+                _LOGGER.error(
+                    "Could not request data for %s reason %s", trip_name, error
+                )
                 stop_dict["ok"] = False
                 continue
 

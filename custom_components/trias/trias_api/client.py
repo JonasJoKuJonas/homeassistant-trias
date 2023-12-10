@@ -14,7 +14,7 @@ from .utils import (
     convert_to_zulu_format,
     to_datetime,
     parse_duration,
-    get_timedelta_string,
+    get_timedelta,
     convert_to_local_format,
 )
 
@@ -310,7 +310,7 @@ class Client:
                     "ServiceDeparture"
                 ].get("EstimatedTime", None)
             )
-            data["CurrentDelay"] = get_timedelta_string(
+            data["CurrentDelay"] = get_timedelta(
                 data["EstimatedTime"], data["TimetabledTime"]
             )
 
@@ -391,7 +391,7 @@ class Client:
                             "EstimatedTime", None
                         )
                     )
-                    leg_data["EntryCurrentDelay"] = get_timedelta_string(
+                    leg_data["EntryCurrentDelay"] = get_timedelta(
                         leg_data["EntryTimetabledTime"],
                         leg_data["EntryEstimatedTime"],
                     )
@@ -406,7 +406,7 @@ class Client:
                             "EstimatedTime", None
                         )
                     )
-                    leg_data["ExitCurrentDelay"] = get_timedelta_string(
+                    leg_data["ExitCurrentDelay"] = get_timedelta(
                         leg_data["ExitTimetabledTime"],
                         leg_data["ExitEstimatedTime"],
                     )
