@@ -80,12 +80,4 @@ def get_timedelta(start_dt, end_dt):
     # Calculate the timedelta
     delta = end_dt - start_dt
 
-    # Calculate hours, minutes, and seconds
-    hours, remainder = divmod(delta.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    # Format the timedelta as "hh:mm:ss"
-    timedelta_str = "{:02}:{:02}:{:02}".format(hours, minutes, seconds)
-    
-
     return delta

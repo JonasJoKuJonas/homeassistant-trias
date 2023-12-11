@@ -154,8 +154,6 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     to_location_id: to_name,
                 }
 
-                _LOGGER.warn(options)
-
                 _LOGGER.info("Updatet trip infos: '%s'", trip_name)
                 self._hass.config_entries.async_update_entry(
                     self._entry, options=options

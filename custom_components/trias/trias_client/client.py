@@ -380,6 +380,9 @@ class Client:
                     timed_leg = transportation["TimedLeg"]
 
                     leg_data["PTMode"] = timed_leg["Service"]["Mode"]["PtMode"]
+                    leg_data["LineName"] = timed_leg["Service"]["PublishedLineName"][
+                        "Text"
+                    ]
 
                     # Entry
                     leg_data["Entry"] = timed_leg["LegBoard"]["StopPointName"]["Text"]
