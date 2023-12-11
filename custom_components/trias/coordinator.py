@@ -131,13 +131,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.error(
                     "Could not request data for %s reason %s", trip_name, error
                 )
-                stop_dict["ok"] = False
                 continue
             except InvalidLocationName as error:
                 _LOGGER.error(
                     "Could not request data for %s reason %s", trip_name, error
                 )
-                stop_dict["ok"] = False
                 continue
 
             from_name = from_station_data["StopPoint"]["StopPointName"]["Text"]
