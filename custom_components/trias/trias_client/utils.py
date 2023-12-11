@@ -73,7 +73,7 @@ def parse_duration(duration):
     return str(parsed_duration)
 
 
-def get_timedelta(start_dt, end_dt, to_str=True):
+def get_timedelta(start_dt, end_dt):
     if not start_dt or not end_dt:
         return None
 
@@ -86,8 +86,6 @@ def get_timedelta(start_dt, end_dt, to_str=True):
 
     # Format the timedelta as "hh:mm:ss"
     timedelta_str = "{:02}:{:02}:{:02}".format(hours, minutes, seconds)
-
-    if to_str:
-        delta = str(delta)
+    
 
     return delta

@@ -6,8 +6,8 @@ import logging
 from math import ceil
 import json
 
-from .trias_api import client as trias
-from .trias_api.exceptions import ApiError, InvalidLocationName
+from .trias_client import client as trias
+from .trias_client.exceptions import ApiError, InvalidLocationName
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
