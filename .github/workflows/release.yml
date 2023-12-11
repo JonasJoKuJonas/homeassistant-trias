@@ -31,5 +31,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ github.workspace }}/custom_components/trias/trias.zip
           asset_name: trias.zip
-          tag: ${{ github.ref }}
           overwrite: true
+          tag: ${{ github.ref }}
