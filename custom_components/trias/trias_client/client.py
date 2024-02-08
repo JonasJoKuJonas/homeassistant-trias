@@ -368,7 +368,7 @@ class Client:
 
             transport_data = trip["Trip"]["TripLeg"]
 
-            if trip_result["Interchanges"] == 0:
+            if not isinstance(transport_data, list):
                 transport_data = [transport_data]
 
             for transportation in transport_data:
