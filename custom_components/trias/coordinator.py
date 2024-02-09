@@ -1,25 +1,22 @@
 """The Trias update coordinator."""
+
 from __future__ import annotations
 
 from datetime import timedelta
 import logging
-from math import ceil
-import json
 
 from .trias_client import client as trias
 from .trias_client.exceptions import ApiError, InvalidLocationName
 
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 
 from homeassistant.const import (
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
-    CURRENCY_EURO,
-    DEVICE_CLASS_TIMESTAMP,
 )
 
 _LOGGER = logging.getLogger(__name__)
