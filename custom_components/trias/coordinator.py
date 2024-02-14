@@ -111,7 +111,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 **stop_id_dict,
             }
 
-            _LOGGER.info("Updatet trip infos: %s", stop_id_dict)
+            _LOGGER.info("Updatet stop infos: \n%s", stop_id_dict)
             self._hass.config_entries.async_update_entry(self._entry, options=options)
 
         for trip_name, locations in self.trip_list.items():
@@ -191,13 +191,17 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "exception": True,
                 }
             else:
+                
                 data = {}
                 if departures[0]["EstimatedTime"]:
                     data["next_departure"] = departures[0]["EstimatedTime"]
                 else:
                     data["next_departure"] = departures[0]["TimetabledTime"]
 
-                # _LOGGER.debug("API-Response: " + json.dumps(departures, default=str, indent=2))
+                if departures[0].get("CurrentDelay") is not None:
+                    departures[0]["CurrentDelay"] = str(departures[0]["CurrentDelay"])
+
+                #_LOGGER.debug(f'Stop data \n{data}')
 
                 self.stops[stop_id]["data"] = data
 
