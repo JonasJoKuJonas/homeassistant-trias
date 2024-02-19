@@ -239,13 +239,15 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 attr = {
                     "Interchanges": trip["Interchanges"],
                     "Duration": trip["Duration"],
+                    "Delay": str(trip["Delay"]),
+                    "DelaySeconds": int(trip["Delay"].total_seconds()),
                 }
 
                 self.trips[trip_id]["data"] = data
                 self.trips[trip_id]["attrs"].update(attr)
 
-                _LOGGER.debug("Trip %s data %s", trip_id, trip)
-                _LOGGER.debug("Trip %s data %s", trip_id, self.trips[trip_id])
+                _LOGGER.debug("Trip %s trias data %s", trip_id, trip)
+                _LOGGER.debug("Trip %s sensor data %s", trip_id, self.trips[trip_id])
 
                 status = {
                     "ok": True,

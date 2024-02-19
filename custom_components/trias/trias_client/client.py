@@ -458,6 +458,9 @@ class Client:
             trip_result["StartEstimatedTime"] = trip_result["Transportation"][0][
                 "EntryEstimatedTime"
             ]
+            trip_result["Delay"] = get_timedelta(
+                trip_result["StartEstimatedTime"], trip_result["StartTimetabledTime"]
+            )
 
             trip_results.append(trip_result)
 
