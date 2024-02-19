@@ -1,9 +1,8 @@
 """Client class from Trias module"""
+
 # -*- coding: utf-8 -*-
 # API Dokumentation: https://opentransportdata.swiss/de/cookbook/abfahrts-ankunftsanzeiger/
 
-import datetime
-import json
 import logging
 
 import requests
@@ -11,11 +10,11 @@ import xmltodict
 
 from . import exceptions
 from .utils import (
-    convert_to_zulu_format,
-    to_datetime,
-    parse_duration,
-    get_timedelta,
     convert_to_local_format,
+    convert_to_zulu_format,
+    get_timedelta,
+    parse_duration,
+    to_datetime,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,7 +63,6 @@ class Client:
         req.encoding = "utf-8"
 
         response = req.text
-
 
         try:
             trias_payload = xmltodict.parse(response)["Trias"]["ServiceDelivery"][

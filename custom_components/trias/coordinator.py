@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .trias_client import client as trias
 from .trias_client.exceptions import ApiError, InvalidLocationName
-
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-
-from homeassistant.const import (
-    ATTR_LATITUDE,
-    ATTR_LONGITUDE,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -191,7 +185,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "exception": True,
                 }
             else:
-                
+
                 data = {}
                 if departures[0]["EstimatedTime"]:
                     data["next_departure"] = departures[0]["EstimatedTime"]
@@ -201,7 +195,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 if departures[0].get("CurrentDelay") is not None:
                     departures[0]["CurrentDelay"] = str(departures[0]["CurrentDelay"])
 
-                #_LOGGER.debug(f'Stop data \n{data}')
+                # _LOGGER.debug(f'Stop data \n{data}')
 
                 self.stops[stop_id]["data"] = data
 
