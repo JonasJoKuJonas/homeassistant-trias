@@ -64,7 +64,7 @@ class Client:
         req.encoding = "utf-8"
 
         response = req.text
-        
+
 
         try:
             trias_payload = xmltodict.parse(response)["Trias"]["ServiceDelivery"][
@@ -319,9 +319,12 @@ class Client:
             )
 
             if stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "rail":
-                data["PlannedBay"] = stop_event["StopEvent"]["ThisCall"]["CallAtStop"][
-                    "PlannedBay"
-                ]["Text"]
+
+                data["PlannedBay"] = (
+                    stop_event["StopEvent"]["ThisCall"]["CallAtStop"]
+                    .get("PlannedBay", {})
+                    .get("Text", None)
+                )
             elif stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "bus":
                 pass
             xmlresult.append(data)
