@@ -313,7 +313,7 @@ class Client:
                 ].get("EstimatedTime", None)
             )
             data["CurrentDelay"] = get_timedelta(
-                data["EstimatedTime"], data["TimetabledTime"]
+                data["TimetabledTime"], data["EstimatedTime"]
             )
 
             if stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "rail":
@@ -459,7 +459,7 @@ class Client:
                 "EntryEstimatedTime"
             ]
             trip_result["Delay"] = get_timedelta(
-                trip_result["StartEstimatedTime"], trip_result["StartTimetabledTime"]
+                trip_result["StartTimetabledTime"], trip_result["StartEstimatedTime"]
             )
 
             trip_results.append(trip_result)
