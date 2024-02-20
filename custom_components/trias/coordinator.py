@@ -240,7 +240,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "Interchanges": trip["Interchanges"],
                     "Duration": trip["Duration"],
                     "Delay": str(trip["Delay"]),
-                    "DelaySeconds": int(trip["Delay"].total_seconds()),
+                    "DelaySeconds": (
+                        int(trip["Delay"].total_seconds())
+                        if trip["Delay"] is not None
+                        else 0
+                    ),
                 }
 
                 self.trips[trip_id]["data"] = data
