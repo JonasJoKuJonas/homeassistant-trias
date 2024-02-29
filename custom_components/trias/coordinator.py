@@ -62,7 +62,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             stop_dict = {
                 "id": stop_id,
                 "created": False,
-                "ok": False,
+                "ok": True,
+                "prevestly_ok": False,
                 "attrs": {},
                 "data": {},
             }
@@ -151,7 +152,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             trip_dict = {
                 "id": trip_id,
                 "created": False,
-                "ok": False,
+                "ok": True,
+                "prevestly_ok": False,
                 "name": trip_name,
                 "from": from_location_id,
                 "to": to_location_id,
@@ -172,6 +174,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Fetching new data from Trias API")
 
         for stop_id, data in self.stops.items():
+            self.stops[stop_id]["prevestly_ok"] = self.stops[stop_id]["ok"]
             try:
                 departures = await self._hass.async_add_executor_job(
                     self.client.get_departures, stop_id
@@ -205,7 +208,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "ok": True,
                 }
 
-            if not status["ok"]:
+            if not status["ok"] and self.stops[stop_id]["prevestly_ok"]:
                 _LOGGER.error(
                     "Error when updating stop %s:\n %s",
                     stop_id,
@@ -215,6 +218,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         # _LOGGER.debug("Stops:\n" + json.dumps(self.stops, default=str, indent=2))
 
         for trip_id, data in self.trips.items():
+            self.trips[trip_id]["prevestly_ok"] = self.trips[trip_id]["ok"]
             try:
                 trip = await self._hass.async_add_executor_job(
                     self.client.get_trip,
@@ -257,8 +261,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "ok": True,
                 }
 
-            if not status["ok"]:
-                _LOGGER.error(
+            if not status["ok"] and self.trips[trip_id]["prevestly_ok"]:
+                _LOGGER.warning(
                     "Error when updating stop %s:\n %s",
                     trip_id,
                     status["message"],
