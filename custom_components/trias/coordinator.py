@@ -210,7 +210,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
             if not status["ok"] and self.stops[stop_id]["prevestly_ok"]:
                 _LOGGER.error(
-                    "Error when updating stop %s:\n %s",
+                    "Error when updating stop %s: %s",
                     stop_id,
                     status["message"],
                 )
@@ -263,7 +263,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
             if not status["ok"] and self.trips[trip_id]["prevestly_ok"]:
                 _LOGGER.warning(
-                    "Error when updating stop %s:\n %s",
+                    "Error when updating trip %s: %s",
                     trip_id,
                     status["message"],
                 )
