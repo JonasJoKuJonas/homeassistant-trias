@@ -61,7 +61,7 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
 
         self._name = stop["name"]
 
-        self._attr_extra_state_attributes = stop["attrs"]
+        self._attr_extra_state_attributes.update(stop["attrs"])
 
     @property
     def native_value(self):
@@ -85,7 +85,7 @@ class TripSensor(TriasCoordinatorEntity, SensorEntity):
 
         self._name = trip["name"]
 
-        self._attr_extra_state_attributes = trip["attrs"]
+        self._attr_extra_state_attributes.update(trip["attrs"])
 
     @property
     def native_value(self):
