@@ -250,7 +250,7 @@ class Client:
                 probability = float(
                     result["LocationInformationResponse"]["Location"]["Probability"]
                 )
-                if probability < 0.75:
+                if probability < 0.75 and probability > 0.0:
                     found = result["LocationInformationResponse"]["Location"][
                         "Location"
                     ]["StopPoint"]["StopPointName"]["Text"]
