@@ -1,9 +1,8 @@
 """Client class from Trias module"""
+
 # -*- coding: utf-8 -*-
 # API Dokumentation: https://opentransportdata.swiss/de/cookbook/abfahrts-ankunftsanzeiger/
 
-import datetime
-import json
 import logging
 
 import requests
@@ -11,11 +10,11 @@ import xmltodict
 
 from . import exceptions
 from .utils import (
-    convert_to_zulu_format,
-    to_datetime,
-    parse_duration,
-    get_timedelta,
     convert_to_local_format,
+    convert_to_zulu_format,
+    get_timedelta,
+    parse_duration,
+    to_datetime,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,9 +64,12 @@ class Client:
 
         response = req.text
 
-        trias_payload = xmltodict.parse(response)["Trias"]["ServiceDelivery"][
-            "DeliveryPayload"
-        ]
+        try:
+            trias_payload = xmltodict.parse(response)["Trias"]["ServiceDelivery"][
+                "DeliveryPayload"
+            ]
+        except KeyError:
+            raise exceptions.ApiError(response)
 
         error = None
         response_keys = [
@@ -248,7 +250,7 @@ class Client:
                 probability = float(
                     result["LocationInformationResponse"]["Location"]["Probability"]
                 )
-                if probability < 0.75:
+                if probability < 0.75 and probability > 0.0:
                     found = result["LocationInformationResponse"]["Location"][
                         "Location"
                     ]["StopPoint"]["StopPointName"]["Text"]
@@ -311,13 +313,16 @@ class Client:
                 ].get("EstimatedTime", None)
             )
             data["CurrentDelay"] = get_timedelta(
-                data["EstimatedTime"], data["TimetabledTime"]
+                data["TimetabledTime"], data["EstimatedTime"]
             )
 
             if stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "rail":
-                data["PlannedBay"] = stop_event["StopEvent"]["ThisCall"]["CallAtStop"][
-                    "PlannedBay"
-                ]["Text"]
+
+                data["PlannedBay"] = (
+                    stop_event["StopEvent"]["ThisCall"]["CallAtStop"]
+                    .get("PlannedBay", {})
+                    .get("Text", None)
+                )
             elif stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "bus":
                 pass
             xmlresult.append(data)
@@ -368,7 +373,7 @@ class Client:
 
             transport_data = trip["Trip"]["TripLeg"]
 
-            if trip_result["Interchanges"] == 0:
+            if not isinstance(transport_data, list):
                 transport_data = [transport_data]
 
             for transportation in transport_data:
@@ -453,6 +458,9 @@ class Client:
             trip_result["StartEstimatedTime"] = trip_result["Transportation"][0][
                 "EntryEstimatedTime"
             ]
+            trip_result["Delay"] = get_timedelta(
+                trip_result["StartTimetabledTime"], trip_result["StartEstimatedTime"]
+            )
 
             trip_results.append(trip_result)
 

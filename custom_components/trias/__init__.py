@@ -1,19 +1,16 @@
 """The Trias API integration."""
+
 from __future__ import annotations
 
 import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
-
-
+from homeassistant.exceptions import ConfigEntryNotReady
 from requests.exceptions import RequestException
 
-from homeassistant.exceptions import ConfigEntryNotReady
-
-
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 from .coordinator import TriasDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)

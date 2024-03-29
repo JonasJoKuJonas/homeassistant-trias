@@ -1,27 +1,16 @@
 """Trias sensor integration."""
+
 from __future__ import annotations
 
 import logging
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    ATTR_LATITUDE,
-    ATTR_LONGITUDE,
-    CURRENCY_EURO,
-    DEVICE_CLASS_TIMESTAMP,
-)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN
 from .entity import TriasCoordinatorEntity
-
-
-from .const import (
-    DOMAIN,
-)
-
-from .coordinator import TriasDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +48,7 @@ async def async_setup_entry(
 class StopSensor(TriasCoordinatorEntity, SensorEntity):
     """Contains the next departure time."""
 
-    device_class = DEVICE_CLASS_TIMESTAMP
+    device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:bus-stop"
 
     def __init__(self, stop, coordinator):
@@ -72,7 +61,7 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
 
         self._name = stop["name"]
 
-        self._attr_extra_state_attributes = stop["attrs"]
+        self._attr_extra_state_attributes.update(stop["attrs"])
 
     @property
     def native_value(self):
@@ -83,7 +72,7 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
 class TripSensor(TriasCoordinatorEntity, SensorEntity):
     """Contains the next trip time."""
 
-    _attr_device_class = DEVICE_CLASS_TIMESTAMP
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:bus-clock"
 
     def __init__(self, trip, coordinator):
@@ -96,7 +85,7 @@ class TripSensor(TriasCoordinatorEntity, SensorEntity):
 
         self._name = trip["name"]
 
-        self._attr_extra_state_attributes = trip["attrs"]
+        self._attr_extra_state_attributes.update(trip["attrs"])
 
     @property
     def native_value(self):

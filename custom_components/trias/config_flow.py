@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
+
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,11 +89,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options."""
         return self.async_show_menu(step_id="init", menu_options=OPTIONS_MENU)
 
-    async def save(self, user_input):
+    async def save(self, user_input, reload=True):
         """Save the options"""
         _LOGGER.debug("Saving options: %s", user_input)
+
         options = dict(self.config_entry.options)  # old options
         options.update(user_input)  # update old options with new options
+        if reload:
+            options.update({"toggle": not self.config_entry.options.get("toggle")})
         return self.async_create_entry(title="", data=options)
 
     async def async_step_stops(
@@ -207,27 +211,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             stop_points = {}
 
-            if "Location" in data["Location"]:
-                stop_point_names = [
-                    "search",
-                    data["Location"]["Location"]["StopPoint"]["StopPointName"]["Text"],
-                ]
-                stop_points = {
-                    data["Location"]["Location"]["StopPoint"]["StopPointName"][
-                        "Text"
-                    ]: data["Location"]["Location"]["StopPoint"]["StopPointRef"]
-                }
+            if "Location" in data:
+                locations = data["Location"]
 
-            else:
-                stop_point_names = ["search"]
-                self._stop_points = {}
-                for stop in data["Location"]:
-                    stop_point_names.append(
-                        stop["Location"]["StopPoint"]["StopPointName"]["Text"]
+                if isinstance(locations, list):  # Handling multiple locations
+                    for stop in locations:
+                        _LOGGER.warning(stop)
+                        stop_point_name = (
+                            stop["Location"]["LocationName"]["Text"]
+                            + ", "
+                            + stop["Location"]["StopPoint"]["StopPointName"]["Text"]
+                        )
+                        stop_point_id = stop["Location"]["StopPoint"]["StopPointRef"]
+                        stop_points[stop_point_name] = stop_point_id
+                else:  # Handling single location
+                    stop_point_name = (
+                        locations["Location"]["LocationName"]["Text"]
+                        + ", "
+                        + locations["Location"]["StopPoint"]["StopPointName"]["Text"]
                     )
-                    stop_points[
-                        stop["Location"]["StopPoint"]["StopPointName"]["Text"]
-                    ] = stop["Location"]["StopPoint"]["StopPointRef"]
+                    stop_point_id = locations["Location"]["StopPoint"]["StopPointRef"]
+                    stop_points[stop_point_name] = stop_point_id
+
+            stop_point_names = ["search"] + list(stop_points.keys())
 
             self._search_data["stop_points"] = stop_points
 

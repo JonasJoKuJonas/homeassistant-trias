@@ -1,26 +1,17 @@
 """The Trias update coordinator."""
+
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
-from math import ceil
-import json
+from datetime import timedelta
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .trias_client import client as trias
 from .trias_client.exceptions import ApiError, InvalidLocationName
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-
-from homeassistant.const import (
-    ATTR_LATITUDE,
-    ATTR_LONGITUDE,
-    CURRENCY_EURO,
-    DEVICE_CLASS_TIMESTAMP,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +62,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             stop_dict = {
                 "id": stop_id,
                 "created": False,
-                "ok": False,
+                "ok": True,
+                "prevestly_ok": False,
                 "attrs": {},
                 "data": {},
             }
@@ -114,7 +106,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 **stop_id_dict,
             }
 
-            _LOGGER.info("Updatet trip infos: %s", stop_id_dict)
+            _LOGGER.info("Updatet stop infos: \n%s", stop_id_dict)
             self._hass.config_entries.async_update_entry(self._entry, options=options)
 
         for trip_name, locations in self.trip_list.items():
@@ -160,7 +152,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             trip_dict = {
                 "id": trip_id,
                 "created": False,
-                "ok": False,
+                "ok": True,
+                "prevestly_ok": False,
                 "name": trip_name,
                 "from": from_location_id,
                 "to": to_location_id,
@@ -181,6 +174,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Fetching new data from Trias API")
 
         for stop_id, data in self.stops.items():
+            self.stops[stop_id]["prevestly_ok"] = self.stops[stop_id]["ok"]
             try:
                 departures = await self._hass.async_add_executor_job(
                     self.client.get_departures, stop_id
@@ -194,13 +188,17 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "exception": True,
                 }
             else:
+
                 data = {}
                 if departures[0]["EstimatedTime"]:
                     data["next_departure"] = departures[0]["EstimatedTime"]
                 else:
                     data["next_departure"] = departures[0]["TimetabledTime"]
 
-                # _LOGGER.debug("API-Response: " + json.dumps(departures, default=str, indent=2))
+                if departures[0].get("CurrentDelay") is not None:
+                    departures[0]["CurrentDelay"] = str(departures[0]["CurrentDelay"])
+
+                # _LOGGER.debug(f'Stop data \n{data}')
 
                 self.stops[stop_id]["data"] = data
 
@@ -210,9 +208,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "ok": True,
                 }
 
-            if not status["ok"]:
+            if not status["ok"] and self.stops[stop_id]["prevestly_ok"]:
                 _LOGGER.error(
-                    "Error when updating stop %s:\n %s",
+                    "Error when updating stop %s: %s",
                     stop_id,
                     status["message"],
                 )
@@ -220,6 +218,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         # _LOGGER.debug("Stops:\n" + json.dumps(self.stops, default=str, indent=2))
 
         for trip_id, data in self.trips.items():
+            self.trips[trip_id]["prevestly_ok"] = self.trips[trip_id]["ok"]
             try:
                 trip = await self._hass.async_add_executor_job(
                     self.client.get_trip,
@@ -244,21 +243,27 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 attr = {
                     "Interchanges": trip["Interchanges"],
                     "Duration": trip["Duration"],
+                    "Delay": str(trip["Delay"]),
+                    "DelaySeconds": (
+                        int(trip["Delay"].total_seconds())
+                        if trip["Delay"] is not None
+                        else 0
+                    ),
                 }
 
                 self.trips[trip_id]["data"] = data
                 self.trips[trip_id]["attrs"].update(attr)
 
-                _LOGGER.debug("Trip %s data %s", trip_id, trip)
-                _LOGGER.debug("Trip %s data %s", trip_id, self.trips[trip_id])
+                _LOGGER.debug("Trip %s trias data %s", trip_id, trip)
+                _LOGGER.debug("Trip %s sensor data %s", trip_id, self.trips[trip_id])
 
                 status = {
                     "ok": True,
                 }
 
-            if not status["ok"]:
-                _LOGGER.error(
-                    "Error when updating stop %s:\n %s",
+            if not status["ok"] and self.trips[trip_id]["prevestly_ok"]:
+                _LOGGER.warning(
+                    "Error when updating trip %s: %s",
                     trip_id,
                     status["message"],
                 )
