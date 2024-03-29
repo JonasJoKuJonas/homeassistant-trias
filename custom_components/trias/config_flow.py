@@ -89,11 +89,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options."""
         return self.async_show_menu(step_id="init", menu_options=OPTIONS_MENU)
 
-    async def save(self, user_input):
+    async def save(self, user_input, reload=True):
         """Save the options"""
         _LOGGER.debug("Saving options: %s", user_input)
+
         options = dict(self.config_entry.options)  # old options
         options.update(user_input)  # update old options with new options
+        if reload:
+            options.update({"toggle": not self.config_entry.options.get("toggle")})
         return self.async_create_entry(title="", data=options)
 
     async def async_step_stops(
