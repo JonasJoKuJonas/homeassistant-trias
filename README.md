@@ -1,5 +1,8 @@
 # Trias
 
+![Version](https://img.shields.io/github/v/release/JonasJoKuJonas/homeassistant-trias)
+[![Downloads](https://img.shields.io/github/downloads/JonasJoKuJonas/homeassistant-trias/total)](https://tooomm.github.io/github-release-stats/?username=JonasJoKuJonas&repository=HomeAssistant-trias)
+
 ### Custom component for a Trias API in Home Assistant
 
 With this component you can connect your HA with different Trias APIs.
