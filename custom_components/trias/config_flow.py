@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("url"): str,
-        vol.Required("api_key"): str,
+        vol.Optional("api_key"): str,
     }
 )
 

@@ -63,11 +63,14 @@ class Client:
         req.encoding = "utf-8"
 
         response = req.text
+        response_dict = trias_payload = xmltodict.parse(response)
+
+        if next(iter(response_dict)) == "trias:Trias":
+            response = response.replace("trias:", "")
+            response_dict = trias_payload = xmltodict.parse(response)
 
         try:
-            trias_payload = xmltodict.parse(response)["Trias"]["ServiceDelivery"][
-                "DeliveryPayload"
-            ]
+            trias_payload = response_dict["Trias"]["ServiceDelivery"]["DeliveryPayload"]
         except KeyError:
             raise exceptions.ApiError(response)
 

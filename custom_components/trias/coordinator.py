@@ -41,7 +41,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self._config = entry.options
 
         self._url: str = entry.data["url"]
-        self._api_key: str = entry.data["api_key"]
+        self._api_key: str = entry.data.get("api_key", "")
 
         self.client: trias.Client = trias.Client(url=self._url, api_key=self._api_key)
         self.stop_ids: list[str] = entry.options.get("stop_ids", [])
