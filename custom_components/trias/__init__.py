@@ -31,15 +31,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         update_interval=DEFAULT_SCAN_INTERVAL,
     )
 
-    try:
-        setup_ok = await hass.async_add_executor_job(coordinator.setup)
-
-    except RequestException as err:
-        raise ConfigEntryNotReady from err
-    if not setup_ok:
-        _LOGGER.error("Could not setup integration")
-        return False
-
     await coordinator.async_config_entry_first_refresh()
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

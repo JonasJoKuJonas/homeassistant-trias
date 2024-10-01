@@ -13,6 +13,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .trias_client import client as trias
 from .trias_client.exceptions import ApiError, InvalidLocationName
 
+
+from homeassistant.exceptions import ConfigEntryNotReady
+from requests.exceptions import RequestException
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -40,6 +44,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self._entry = entry
         self._config = entry.options
 
+        self._setup = False
+
         self._url: str = entry.data["url"]
         self._api_key: str = entry.data.get("api_key", "")
 
@@ -53,7 +59,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.trips = {}
 
-    def setup(self) -> bool:
+    async def setup(self) -> bool:
         """Set up the Trias API."""
 
         stop_id_dict = {}
@@ -69,7 +75,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             }
 
             try:
-                station_data = self.client.get_station_data(stop_id)
+                station_data = await self.hass.async_add_executor_job(
+                    self.client.get_station_data, stop_id
+                )
             except ApiError as error:
                 _LOGGER.error("Could not request data for %s reason %s", stop_id, error)
                 stop_dict["ok"] = False
@@ -116,8 +124,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             from_location_name, to_location_name = list(locations.values())
 
             try:
-                from_station_data = self.client.get_station_data(from_location_id)
-                to_station_data = self.client.get_station_data(to_location_id)
+                from_station_data = await self._hass.async_add_executor_job(
+                    self.client.get_station_data, from_location_id
+                )
+                to_station_data = await self._hass.async_add_executor_job(
+                    self.client.get_station_data, to_location_id
+                )
 
             except ApiError as error:
                 _LOGGER.error(
@@ -171,6 +183,17 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Get the latest data from the Trias API."""
+
+        if not self._setup:
+            try:
+                setup_ok = await self.setup()
+            except RequestException as err:
+                raise ConfigEntryNotReady from err
+            if not setup_ok:
+                _LOGGER.error("Could not setup integration")
+                return False
+            self._setup = True
+
         _LOGGER.debug("Fetching new data from Trias API")
 
         for stop_id, data in self.stops.items():
