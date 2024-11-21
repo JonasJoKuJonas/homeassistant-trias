@@ -62,6 +62,9 @@ class Client:
 
         req.encoding = "utf-8"
 
+        if req.status_code != 200:
+            raise exceptions.HttpError(req.status_code, req.text)
+
         response = req.text
         response_dict = trias_payload = xmltodict.parse(response)
 
@@ -320,7 +323,6 @@ class Client:
             )
 
             if stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "rail":
-
                 data["PlannedBay"] = (
                     stop_event["StopEvent"]["ThisCall"]["CallAtStop"]
                     .get("PlannedBay", {})
