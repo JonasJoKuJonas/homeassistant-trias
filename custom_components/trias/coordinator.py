@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .trias_client import client as trias
-from .trias_client.exceptions import ApiError, InvalidLocationName
+from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 
 
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -84,6 +84,10 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 continue
             except InvalidLocationName as error:
                 _LOGGER.error("Could not request data for %s reason %s", stop_id, error)
+                stop_dict["ok"] = False
+                continue
+            except HttpError as error:
+                _LOGGER.error(f"Http error {error.status_code}:\n{error.response}")
                 stop_dict["ok"] = False
                 continue
 
@@ -211,7 +215,6 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "exception": True,
                 }
             else:
-
                 data = {}
                 if departures[0]["EstimatedTime"]:
                     data["next_departure"] = departures[0]["EstimatedTime"]
