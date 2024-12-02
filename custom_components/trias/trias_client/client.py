@@ -54,10 +54,17 @@ class Client:
         xml = header.replace("PAYLOAD__", payload)
         xml = xml.replace("NOW__", convert_to_zulu_format())
 
-        req = requests.post(
+        headers = {
+            "Content-Type": "text/xml",
+            "User-Agent": "Wget/1.21.1 (linux-gnu)",
+        }
+
+        req = requests.request(
+            "post",
             self.url,
-            data=xml,
-            headers={"Content-Type": "application/xml"},
+            data=xml.encode("utf-8"),
+            headers=headers,
+            timeout=10,
         )
 
         req.encoding = "utf-8"

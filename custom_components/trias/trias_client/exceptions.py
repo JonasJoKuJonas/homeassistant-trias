@@ -17,7 +17,6 @@ class ApiError(Exception):
 class InvalidLocationName(Exception):
     pass
 
-
 class HttpError(Exception):
     def __init__(self, status_code, response, *args: object) -> None:
         super().__init__(*args)
