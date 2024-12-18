@@ -74,7 +74,7 @@ def parse_duration(duration):
     return str(parsed_duration)
 
 
-def get_timedelta(start_dt, end_dt):
+def get_timedelta(start_dt: datetime.datetime, end_dt: datetime.datetime):
     if not start_dt or not end_dt:
         return "none"
 
