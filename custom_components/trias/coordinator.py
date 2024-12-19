@@ -51,6 +51,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.client: trias.Client = trias.Client(url=self._url, api_key=self._api_key)
         self.stop_ids: list[str] = entry.options.get("stop_ids", [])
+        self.departure_limit: str = entry.options.get("departure_limit_config")
         self.stops: dict[dict] = {}
 
         self.trip_list: list[str] = entry.options.get(
@@ -204,7 +205,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             self.stops[stop_id]["prevestly_ok"] = self.stops[stop_id]["ok"]
             try:
                 departures = await self._hass.async_add_executor_job(
-                    self.client.get_departures, stop_id
+                    self.client.get_departures, stop_id, self.departure_limit
                 )
             except ApiError as err:
                 self.stops[stop_id]["ok"] = False

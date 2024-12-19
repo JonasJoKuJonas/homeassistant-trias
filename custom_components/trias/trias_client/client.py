@@ -276,7 +276,7 @@ class Client:
 
         return result["LocationInformationResponse"]
 
-    def get_departures(self, location_name, number_results=1, dt=None):
+    def get_departures(self, location_name, number_results, dt=None):
         """
         Get formatted departures from a station.
 
