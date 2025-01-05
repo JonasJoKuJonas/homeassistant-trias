@@ -36,8 +36,7 @@
         "description": "Stops that will be created as Sensors",
         "data": {
           "stop_id_dict": "Stop List",
-          "add_stop": "Add new Stop",
-          "departure_limit_config": "Maximum number of Departures"
+          "add_stop": "Add new Stop"
         },
         "data_description": {
           "stop_id_dict": "Remove key to remove Sensor",

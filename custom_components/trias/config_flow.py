@@ -117,7 +117,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             description={"suggested_value": stop_id_dict},
                         ): selector.ObjectSelector(),
                         vol.Optional("add_stop", default=False): bool,
-                        vol.Optional("departure_limit_config", default=5): int,
                     }
                 ),
             )
