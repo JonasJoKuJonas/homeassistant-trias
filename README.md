@@ -1,13 +1,14 @@
-# Trias
+# Trias  
 
-![Version](https://img.shields.io/github/v/release/JonasJoKuJonas/homeassistant-trias)
-[![Downloads](https://img.shields.io/github/downloads/JonasJoKuJonas/homeassistant-trias/total)](https://tooomm.github.io/github-release-stats/?username=JonasJoKuJonas&repository=HomeAssistant-trias)
+![Version](https://img.shields.io/github/v/release/JonasJoKuJonas/homeassistant-trias)  
+[![Downloads](https://img.shields.io/github/downloads/JonasJoKuJonas/homeassistant-trias/total)](https://tooomm.github.io/github-release-stats/?username=JonasJoKuJonas&repository=HomeAssistant-trias)  
 
-### Custom component for a Trias API in Home Assistant
+### Custom Component for Trias API Integration in Home Assistant  
 
-With this component you can connect your HA with different Trias APIs.
-You can add features to show when the next bus or train is leaving a station, and when the next bus or train can take you from one stop to another..
+This custom component connects Home Assistant with various Trias APIs, enabling real-time public transport features, including:  
+- Displaying departure times for buses and trains from specific stations.
+- Providing information on when the next bus or train can take you from one stop to another.  
 
-## Trias PROVIDERS
+### Trias Providers  
 
-https://github.com/andaryjo/trias-client/blob/main/docs/PROVIDERS.md
+For a list of supported providers, visit the [Trias Providers Documentation](https://github.com/andaryjo/trias-client/blob/main/docs/PROVIDERS.md).  
