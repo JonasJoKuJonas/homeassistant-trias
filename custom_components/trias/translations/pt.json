@@ -1,0 +1,70 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "O dispositivo já está configurado"
+    },
+    "error": {
+      "cannot_connect": "Falha ao ligar",
+      "invalid_auth": "Autenticação inválida",
+      "unknown": "Erro inesperado"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "url": "URL",
+          "api_key": "Chave API"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {},
+    "step": {
+      "search_station": {
+        "title": "Procurar Localização",
+        "description": "Introduza o nome da localização para procurar",
+        "data": {
+          "search_value": "Nome da Localização",
+          "station": "Localizações"
+        },
+        "data_description": {
+          "station": "Selecione a localização que deseja adicionar\nSelecione procurar para pesquisar novamente"
+        }
+      },
+      "stops": {
+        "title": "Paragens",
+        "description": "Paragens que serão criadas como sensores",
+        "data": {
+          "stop_id_dict": "Lista de Paragens",
+          "add_stop": "Adicionar nova Paragem"
+        },
+        "data_description": {
+          "stop_id_dict": "Remova a chave para eliminar o Sensor",
+          "add_stop": "Alternar para procurar uma paragem"
+        }
+      },
+      "trips": {
+        "title": "Viagens",
+        "description": "Viagens que serão criadas como sensores",
+        "data": {
+          "trips": "Lista de Viagens",
+          "add_stop": "Adicionar nova Viagem"
+        },
+        "data_description": {
+          "trips": "Remova a chave para eliminar o Sensor\nRenomeie a chave para renomear o Sensor",
+          "add_stop": "Alternar para adicionar nova Viagem"
+        }
+      },
+      "trip_name": {
+        "title": "Nomear Viagens",
+        "data": {
+          "trip_name": "Nome da Viagem",
+          "trip": "Dados da Viagem"
+        },
+        "data_description": {
+          "trip": "Início e fim da viagem"
+        }
+      }
+    }
+  }
+}
