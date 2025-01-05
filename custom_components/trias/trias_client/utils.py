@@ -76,9 +76,9 @@ def parse_duration(duration):
 
 def get_timedelta(start_dt: datetime.datetime, end_dt: datetime.datetime):
     if not start_dt or not end_dt:
-        return "none"
+        return None
 
     # Calculate the timedelta
     delta = end_dt - start_dt
 
-    return str(delta)
+    return delta

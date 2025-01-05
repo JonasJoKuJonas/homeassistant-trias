@@ -68,6 +68,7 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
         """Return the state of the device."""
         stop = self.coordinator.stops[self._stop_id]
         self._attr_extra_state_attributes.update(stop["attrs"])
+
         return stop["data"].get("next_departure", None)
 
 

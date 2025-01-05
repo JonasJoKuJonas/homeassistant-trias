@@ -12,7 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
 
-from .const import DOMAIN
+from .const import DOMAIN, DEFAULT_DEPARTURE_LIMIT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -117,7 +117,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             description={"suggested_value": stop_id_dict},
                         ): selector.ObjectSelector(),
                         vol.Optional("add_stop", default=False): bool,
-                        vol.Optional("departure_limit_config", default=5): int,
+                        vol.Optional(
+                            "departure_limit_config",
+                            default=self.config_entry.options.get(
+                                "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
+                            ),
+                        ): int,
                     }
                 ),
             )

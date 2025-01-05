@@ -17,6 +17,8 @@ from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
 from requests.exceptions import RequestException
 
+from .const import DEFAULT_DEPARTURE_LIMIT
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -51,7 +53,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self.client: trias.Client = trias.Client(url=self._url, api_key=self._api_key)
         self.stop_ids: list[str] = entry.options.get("stop_ids", [])
-        self.departure_limit: str = entry.options.get("departure_limit_config")
+        self.departure_limit: str = entry.options.get(
+            "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
+        )
         self.stops: dict[dict] = {}
 
         self.trip_list: list[str] = entry.options.get(
@@ -217,15 +221,15 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 }
             else:
                 data = {}
+
                 if departures[0]["EstimatedTime"]:
                     data["next_departure"] = departures[0]["EstimatedTime"]
                 else:
                     data["next_departure"] = departures[0]["TimetabledTime"]
 
-                if departures[0].get("CurrentDelay") is not None:
-                    departures[0]["CurrentDelay"] = str(departures[0]["CurrentDelay"])
-
-                # _LOGGER.debug(f'Stop data \n{data}')
+                for departure in departures:
+                    if departure.get("CurrentDelay") is not None:
+                        departure["CurrentDelay"] = str(departure["CurrentDelay"])
 
                 self.stops[stop_id]["data"] = data
 
