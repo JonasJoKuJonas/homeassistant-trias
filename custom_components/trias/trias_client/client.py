@@ -464,12 +464,12 @@ class Client:
 
                 trip_result["Transportation"].append(leg_data)
 
-            trip_result["StartTimetabledTime"] = trip_result["Transportation"][0][
-                "EntryTimetabledTime"
-            ]
-            trip_result["StartEstimatedTime"] = trip_result["Transportation"][0][
-                "EntryEstimatedTime"
-            ]
+            trip_result["StartTimetabledTime"] = trip_result["Transportation"][0].get(
+                "EntryTimetabledTime", None
+            )
+            trip_result["StartEstimatedTime"] = trip_result["Transportation"][0].get(
+                "EntryEstimatedTime", None
+            )
             trip_result["Delay"] = get_timedelta(
                 trip_result["StartTimetabledTime"], trip_result["StartEstimatedTime"]
             )
