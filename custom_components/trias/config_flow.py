@@ -11,28 +11,24 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
+from requests.exceptions import MissingSchema
 
-from .const import DOMAIN, DEFAULT_DEPARTURE_LIMIT
+from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN
+from .trias_client import client as trias
+from .trias_client.exceptions import HttpError, InvalidApiKey, InvalidRequest
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required("url"): str,
-        vol.Optional("api_key"): str,
-    }
-)
 
-
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
 
-    # Return info that you want to store in the config entry.
-    return {"title": "Name of the device"}
+    client = trias.Client(url=data["url"], api_key=data.get("api_key", ""))
+
+    client.test_connection()
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -55,19 +51,37 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
+                await self.hass.async_add_executor_job(
+                    validate_input, self.hass, user_input
+                )
+            except InvalidRequest:
+                errors["base"] = "invalid_request"
+            except InvalidApiKey:
+                errors["api_key"] = "invalid_api_key"
+            except HttpError as err:
+                errors["base"] = "http_error"
+            except MissingSchema:
+                errors["base"] = "invalid_url"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return self.async_create_entry(
+                    title=user_input["name"], data=user_input
+                )
+        else:
+            user_input = {}
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("name", default=user_input.get("name", "")): str,
+                    vol.Required("url", default=user_input.get("url", "")): str,
+                    vol.Optional("api_key", default=user_input.get("api_key", "")): str,
+                }
+            ),
+            errors=errors,
         )
 
 

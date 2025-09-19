@@ -4,13 +4,16 @@
       "already_configured": "Device is already configured"
     },
     "error": {
-      "cannot_connect": "Failed to connect",
-      "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "invalid_request": "Invalid request",
+      "invalid_api_key": "Invalid API key",
+      "http_error": "HTTP error occurred",
+      "invalid_url": "Invalid URL",
+      "unknown": "Unexpected error. Check the logs for more details."
     },
     "step": {
       "user": {
         "data": {
+          "name": "Name",
           "url": "URL",
           "api_key": "API-Key"
         }

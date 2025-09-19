@@ -6,6 +6,10 @@ class InvalidUrl(Exception):
     pass
 
 
+class InvalidRequest(Exception):
+    pass
+
+
 class InvalidNumberOfResults(Exception):
     pass
 
@@ -16,6 +20,7 @@ class ApiError(Exception):
 
 class InvalidLocationName(Exception):
     pass
+
 
 class HttpError(Exception):
     def __init__(self, status_code, response, *args: object) -> None:

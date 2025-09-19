@@ -69,6 +69,12 @@ class Client:
 
         req.encoding = "utf-8"
 
+        if req.status_code == 400:
+            raise exceptions.InvalidRequest
+
+        if req.status_code == 403:
+            raise exceptions.InvalidApiKey
+
         if req.status_code != 200:
             raise exceptions.HttpError(req.status_code, req.text)
 
@@ -102,6 +108,11 @@ class Client:
                 raise exceptions.ApiError(error_message)
 
         return trias_payload
+
+    def test_connection(self) -> bool:
+        """Simple check if API key + URL work"""
+        self.location_information_request("e", ignore_low_probability=True)
+        return True
 
     def stop_event_request(
         self,
@@ -228,7 +239,11 @@ class Client:
         return self.get(xml)
 
     def location_information_request(
-        self, location_name, number_of_results=1, include_pt_podes=False
+        self,
+        location_name,
+        number_of_results=1,
+        include_pt_podes=False,
+        ignore_low_probability=False,
     ):
         """Make API call to get location_information_request"""
         xml = """
@@ -258,7 +273,7 @@ class Client:
         except KeyError:
             pass
 
-        if number_of_results == 1:
+        if number_of_results == 1 and not ignore_low_probability:
             try:
                 probability = float(
                     result["LocationInformationResponse"]["Location"]["Probability"]
@@ -464,12 +479,12 @@ class Client:
 
                 trip_result["Transportation"].append(leg_data)
 
-            trip_result["StartTimetabledTime"] = trip_result["Transportation"][0].get(
-                "EntryTimetabledTime", None
-            )
-            trip_result["StartEstimatedTime"] = trip_result["Transportation"][0].get(
-                "EntryEstimatedTime", None
-            )
+            trip_result["StartTimetabledTime"] = trip_result.get(
+                "Transportation", [{}]
+            )[0].get("EntryTimetabledTime")
+            trip_result["StartEstimatedTime"] = trip_result.get("Transportation", [{}])[
+                0
+            ].get("EntryEstimatedTime", None)
             trip_result["Delay"] = get_timedelta(
                 trip_result["StartTimetabledTime"], trip_result["StartEstimatedTime"]
             )
