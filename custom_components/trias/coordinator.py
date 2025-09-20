@@ -98,7 +98,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 stop_dict["ok"] = False
                 continue
 
-            stop_dict["name"] = station_data["StopPoint"]["StopPointName"]["Text"]
+            stop_dict["name"] = (
+                station_data["LocationName"]["Text"]
+                + ", "
+                + station_data["StopPoint"]["StopPointName"]["Text"]
+            )
 
             stop_dict["attrs"][ATTR_LATITUDE] = station_data["GeoPosition"]["Latitude"]
             stop_dict["attrs"][ATTR_LONGITUDE] = station_data["GeoPosition"][
@@ -163,8 +167,16 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 )
                 continue
 
-            from_name = from_station_data["StopPoint"]["StopPointName"]["Text"]
-            to_name = to_station_data["StopPoint"]["StopPointName"]["Text"]
+            from_name = (
+                from_station_data["LocationName"]["Text"]
+                + ", "
+                + from_station_data["StopPoint"]["StopPointName"]["Text"]
+            )
+            to_name = (
+                to_station_data["LocationName"]["Text"]
+                + ", "
+                + to_station_data["StopPoint"]["StopPointName"]["Text"]
+            )
 
             _LOGGER.info(from_name + " " + to_name)
             _LOGGER.info(from_location_name + " " + to_location_name)
