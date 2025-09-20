@@ -191,7 +191,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 step_id="trip_name",
                 data_schema=vol.Schema(
                     {
-                        vol.Optional("trip_name"): selector.TextSelector(),
+                        vol.Required("trip_name"): selector.TextSelector(),
                         vol.Optional(
                             "trip",
                             description={"suggested_value": add},
@@ -200,17 +200,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             )
         else:
-            trip = {user_input["trip_name"]: user_input["trip"]}
+            trip = {
+                user_input["trip_name"]: {
+                    "origin": user_input["trip"]["origin"],
+                    "destination": user_input["trip"]["destination"],
+                }
+            }
             return await self.async_step_trips(None, trip)
 
     async def async_step_search_station(
         self, user_input: dict[str, str] = None, function=None, count=1
     ) -> FlowResult:
+        """Search and select stations for trips or stops."""
+
+        # Setup function, count, and temporary return data
         if function:
             self._search_data["function"] = function
             self._search_data["return_data"] = {}
             self._search_data["count"] = count
 
+        # Show search form
         if user_input is None:
             return self.async_show_form(
                 step_id="search_station",
@@ -222,9 +231,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     }
                 ),
             )
+
+        # Handle search query
         elif user_input.get("station", "search") == "search":
             client = self.hass.data[DOMAIN][self.config_entry.entry_id].client
 
+            # Fetch locations from WebUntis
             data = await self.hass.async_add_executor_job(
                 client.location_information_request, user_input["search_value"], 4
             )
@@ -234,9 +246,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if "Location" in data:
                 locations = data["Location"]
 
-                if isinstance(locations, list):  # Handling multiple locations
+                # Multiple locations
+                if isinstance(locations, list):
                     for stop in locations:
-                        _LOGGER.warning(stop)
                         stop_point_name = (
                             stop["Location"]["LocationName"]["Text"]
                             + ", "
@@ -244,7 +256,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         )
                         stop_point_id = stop["Location"]["StopPoint"]["StopPointRef"]
                         stop_points[stop_point_name] = stop_point_id
-                else:  # Handling single location
+                else:  # Single location
                     stop_point_name = (
                         locations["Location"]["LocationName"]["Text"]
                         + ", "
@@ -254,9 +266,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     stop_points[stop_point_name] = stop_point_id
 
             stop_point_names = ["search"] + list(stop_points.keys())
-
             self._search_data["stop_points"] = stop_points
-
+            # Show selection form
             return self.async_show_form(
                 step_id="search_station",
                 data_schema=vol.Schema(
@@ -273,20 +284,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     }
                 ),
             )
-        else:
-            self._search_data["return_data"][
-                self._search_data["stop_points"][user_input["station"]]
-            ] = user_input["station"]
 
+        # Handle selection of a station
+        else:
+            selected_name = user_input["station"]
+            selected_id = self._search_data["stop_points"][selected_name]
+            self._search_data["return_data"][selected_name] = selected_id
+
+            # Check if we still need more stations
             if len(self._search_data["return_data"]) < self._search_data["count"]:
                 return await self.async_step_search_station()
+
+            # Map first selection to origin, second to destination (for trips)
+            if self._search_data["count"] == 2:
+                names = list(self._search_data["return_data"].keys())
+                ids = list(self._search_data["return_data"].values())
+                trip_data = {
+                    "origin": {"id": ids[0], "name": names[0]},
+                    "destination": {"id": ids[1], "name": names[1]},
+                }
+            else:
+                # Single station case (e.g., stops)
+                name, id_ = next(iter(self._search_data["return_data"].items()))
+                trip_data = {id_: name}
+
+            # Call the next step function with processed data
             _function = self._search_data["function"]
-            return await _function(None, self._search_data["return_data"])
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""
+            return await _function(None, trip_data)

@@ -58,9 +58,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.stops: dict[dict] = {}
 
-        self.trip_list: list[str] = entry.options.get(
-            "trips", {}
-        )  # {"Trip 1": {"id1": "name1", "id2": "name2"}}
+        self.trip_list: list[str] = entry.options.get("trips", {})
+        # {
+        #    "origin": {"id": "...", "name": "..."},
+        #    "destination": {"id": "...", "name": "..."},
+        # }
 
         self.trips = {}
 
@@ -129,8 +131,18 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         for trip_name, locations in self.trip_list.items():
             trip_id = trip_name.lower().replace(" ", "-")
 
-            from_location_id, to_location_id = list(locations.keys())
-            from_location_name, to_location_name = list(locations.values())
+            if "origin" in locations and "destination" in locations:
+                # New format
+                from_location_id = locations["origin"]["id"]
+                from_location_name = locations["origin"]["name"]
+                to_location_id = locations["destination"]["id"]
+                to_location_name = locations["destination"]["name"]
+            else:
+                # Old format
+                ids = list(locations.keys())
+                names = list(locations.values())
+                from_location_id, to_location_id = ids
+                from_location_name, to_location_name = names
 
             try:
                 from_station_data = await self._hass.async_add_executor_job(
