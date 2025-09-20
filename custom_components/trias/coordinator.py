@@ -144,9 +144,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 # Old format
                 ids = list(locations.keys())
-                names = list(locations.values())
                 from_location_id, to_location_id = ids
-                from_location_name, to_location_name = names
+                from_location_name, to_location_name = "", ""
 
             try:
                 from_station_data = await self._hass.async_add_executor_job(
