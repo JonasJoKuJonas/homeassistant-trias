@@ -134,9 +134,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             if "origin" in locations and "destination" in locations:
                 # New format
                 from_location_id = locations["origin"]["id"]
-                from_location_name = locations["origin"]["name"]
+                from_location_name = locations["origin"].get("name", "")
                 to_location_id = locations["destination"]["id"]
-                to_location_name = locations["destination"]["name"]
+                to_location_name = locations["destination"].get("name", "")
             else:
                 # Old format
                 ids = list(locations.keys())
@@ -173,8 +173,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 options = {**self._config}
 
                 options["trips"][trip_name] = {
-                    from_location_id: from_name,
-                    to_location_id: to_name,
+                    "origin": {"id": from_location_id, "name": from_name},
+                    "destination": {"id": to_location_id, "name": to_name},
                 }
 
                 _LOGGER.info("Updatet trip infos: '%s'", trip_name)
