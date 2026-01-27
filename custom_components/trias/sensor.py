@@ -93,4 +93,7 @@ class TripSensor(TriasCoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the device."""
-        return self.coordinator.trips[self._trip_id]["data"].get("start", None)
+        trip = self.coordinator.trips[self._trip_id]
+        self._attr_extra_state_attributes.update(trip["attrs"])
+
+        return trip["data"].get("start", None)
