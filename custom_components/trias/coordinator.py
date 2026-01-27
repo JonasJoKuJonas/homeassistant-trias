@@ -46,6 +46,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self._entry = entry
         self._config = entry.options
 
+        self.name = entry.title
+
         self._setup = False
 
         self._url: str = entry.data["url"]
@@ -250,13 +252,40 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 else:
                     data["next_departure"] = departures[0]["TimetabledTime"]
 
+                departure_attr = []
                 for departure in departures:
-                    if departure.get("CurrentDelay") is not None:
-                        departure["CurrentDelay"] = str(departure["CurrentDelay"])
+                    departure_attr.append(
+                        {
+                            "Mode": departure["mode"],
+                            "StopPointName": departure["StopPointName"],
+                            "LineName": departure["LineName"],
+                            "DestinationText": departure["DestinationText"],
+                            "StartTime": departure["EstimatedTime"]
+                            or departure["TimetabledTime"],
+                            "TimetabledTime": departure["TimetabledTime"],
+                            "EstimatedTime": departure["EstimatedTime"],
+                            "PlannedBay": departure.get("PlannedBay"),
+                            "Delay": (
+                                str(departure["Delay"])
+                                if departure.get("Delay")
+                                else None
+                            ),
+                            "DelaySeconds": (
+                                int(departure["Delay"].total_seconds())
+                                if departure.get("Delay") is not None
+                                else 0
+                            ),
+                            "DelayMinutes": (
+                                int(departure["Delay"].total_seconds() / 60)
+                                if departure.get("Delay") is not None
+                                else 0
+                            ),
+                        }
+                    )
 
                 self.stops[stop_id]["data"] = data
 
-                self.stops[stop_id]["attrs"]["departures"] = departures
+                self.stops[stop_id]["attrs"]["departures"] = departure_attr
 
                 status = {
                     "ok": True,
@@ -274,11 +303,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         for trip_id, data in self.trips.items():
             self.trips[trip_id]["prevestly_ok"] = self.trips[trip_id]["ok"]
             try:
-                trip = await self._hass.async_add_executor_job(
+                trips = await self._hass.async_add_executor_job(
                     self.client.get_trip,
                     data["from"],
                     data["to"],
-                    1,
+                    self.departure_limit,
                 )
 
             except ApiError as err:
@@ -290,30 +319,116 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     "exception": True,
                 }
             else:
-                trip = trip[0]
+                if not trips:
+                    self.trips[trip_id]["ok"] = False
+                    self.trips[trip_id]["data"] = {}
+                    status = {
+                        "ok": False,
+                        "message": "Keine Trips gefunden",
+                        "exception": False,
+                    }
+                else:
+                    # Erster Trip wird als Hauptwert verwendet
+                    first_trip = trips[0]
 
-                data = {"start": trip["StartTime"]}
+                    # Daten für den Haupt-Sensorwert (erster Trip)
+                    if first_trip.get("EstimatedStartTime"):
+                        next_departure = first_trip["EstimatedStartTime"]
+                    else:
+                        next_departure = first_trip["StartTime"]
 
-                attr = {
-                    "Interchanges": trip["Interchanges"],
-                    "Duration": trip["Duration"],
-                    "Delay": str(trip["Delay"]),
-                    "DelaySeconds": (
-                        int(trip["Delay"].total_seconds())
-                        if trip["Delay"] is not None
-                        else 0
-                    ),
-                }
+                    data = {"start": next_departure}
 
-                self.trips[trip_id]["data"] = data
-                self.trips[trip_id]["attrs"].update(attr)
+                    # _LOGGER.debug("Trip %s data %s", trip_id, first_trip)
 
-                _LOGGER.debug("Trip %s trias data %s", trip_id, trip)
-                _LOGGER.debug("Trip %s sensor data %s", trip_id, self.trips[trip_id])
+                    # Attributes für den ersten Trip
+                    attr = {
+                        "StartTime": first_trip["StartTime"],
+                        "TimetabledStartTime": first_trip["StartTimetabledTime"],
+                        "EstimatedStartTime": first_trip.get("StartEstimatedTime"),
+                        "EndTime": first_trip["EndTime"],
+                        "TimetabledEndTime": first_trip.get("EndTimetabledTime"),
+                        "EstimatedEndTime": first_trip.get("EstimatedEndTime"),
+                        "Interchanges": first_trip["Interchanges"],
+                        "LineName": first_trip["Transportation"][0]["LineName"],
+                        "DestinationText": first_trip["Transportation"][0][
+                            "DestinationText"
+                        ],
+                        "Duration": first_trip["Duration"],
+                        "Delay": (
+                            str(first_trip["Delay"])
+                            if first_trip.get("Delay")
+                            else None
+                        ),
+                        "DelaySeconds": (
+                            int(first_trip["Delay"].total_seconds())
+                            if first_trip.get("Delay") is not None
+                            else 0
+                        ),
+                        "DelayMinutes": (
+                            int(first_trip["Delay"].total_seconds() / 60)
+                            if first_trip.get("Delay") is not None
+                            else 0
+                        ),
+                    }
 
-                status = {
-                    "ok": True,
-                }
+                    # Weitere Trips als departures-Liste
+                    departures = []
+                    for idx, trip in enumerate(trips):
+                        trip_info = {
+                            "index": idx,
+                            "StartTime": trip["StartTime"],
+                            "TimetabledStartTime": trip["StartTimetabledTime"],
+                            "EstimatedStartTime": trip.get("StartEstimatedTime"),
+                            "EndTime": trip["EndTime"],
+                            "TimetabledEndTime": trip.get("EndTimetabledTime"),
+                            "EstimatedEndTime": trip.get("EstimatedEndTime"),
+                            "Interchanges": trip["Interchanges"],
+                            "LineName": trip["Transportation"][0]["LineName"],
+                            "DestinationText": trip["Transportation"][0][
+                                "DestinationText"
+                            ],
+                            "Duration": trip["Duration"],
+                            "Delay": (
+                                str(trip["Delay"]) if trip.get("Delay") else None
+                            ),
+                            "DelaySeconds": (
+                                int(trip["Delay"].total_seconds())
+                                if trip.get("Delay") is not None
+                                else 0
+                            ),
+                            "DelayMinutes": (
+                                int(trip["Delay"].total_seconds() / 60)
+                                if trip.get("Delay") is not None
+                                else 0
+                            ),
+                        }
+
+                        # Berechne Verzögerung für Abfahrt
+                        if trip_info.get("EstimatedStartTime") and trip_info.get(
+                            "StartTime"
+                        ):
+                            delay = (
+                                trip_info["EstimatedStartTime"] - trip_info["StartTime"]
+                            )
+                            trip_info["CurrentDelay"] = str(delay)
+                            trip_info["CurrentDelayMinutes"] = int(
+                                delay.total_seconds() / 60
+                            )
+
+                        departures.append(trip_info)
+
+                    attr["departures"] = departures
+
+                    # Füge zusätzlich die Anzahl der verfügbaren Trips hinzu
+                    attr["available_trips"] = len(trips)
+
+                    self.trips[trip_id]["data"] = data
+                    self.trips[trip_id]["attrs"].update(attr)
+
+                    status = {
+                        "ok": True,
+                    }
 
             if not status["ok"] and self.trips[trip_id]["prevestly_ok"]:
                 _LOGGER.warning(

@@ -64,7 +64,7 @@ class Client:
             self.url,
             data=xml.encode("utf-8"),
             headers=headers,
-            timeout=10,
+            timeout=20,
         )
 
         req.encoding = "utf-8"
@@ -323,9 +323,9 @@ class Client:
             data["StopPointName"] = stop_event["StopEvent"]["ThisCall"]["CallAtStop"][
                 "StopPointName"
             ]["Text"]
-            data["PublishedLineName"] = stop_event["StopEvent"]["Service"][
-                "PublishedLineName"
-            ]["Text"]
+            data["LineName"] = stop_event["StopEvent"]["Service"]["PublishedLineName"][
+                "Text"
+            ]
             data["DestinationText"] = stop_event["StopEvent"]["Service"][
                 "DestinationText"
             ]["Text"]
@@ -338,11 +338,14 @@ class Client:
             data["EstimatedTime"] = to_datetime(
                 stop_event["StopEvent"]["ThisCall"]["CallAtStop"][
                     "ServiceDeparture"
-                ].get("EstimatedTime", None)
+                ].get(
+                    "EstimatedTime",
+                    stop_event["StopEvent"]["ThisCall"]["CallAtStop"][
+                        "ServiceDeparture"
+                    ]["TimetabledTime"],
+                )
             )
-            data["CurrentDelay"] = get_timedelta(
-                data["TimetabledTime"], data["EstimatedTime"]
-            )
+            data["Delay"] = get_timedelta(data["TimetabledTime"], data["EstimatedTime"])
 
             if stop_event["StopEvent"]["Service"]["Mode"]["PtMode"] == "rail":
                 data["PlannedBay"] = (
@@ -381,7 +384,7 @@ class Client:
             number_of_results=number_of_results,
         )["TripResult"]
 
-        _LOGGER.debug("Trip Request: %s", trip_data)
+        # _LOGGER.debug("Trip Request: %s", trip_data)
 
         if not isinstance(trip_data, list):
             trip_data = [trip_data]
@@ -415,6 +418,9 @@ class Client:
                     leg_data["LineName"] = timed_leg["Service"]["PublishedLineName"][
                         "Text"
                     ]
+                    leg_data["DestinationText"] = timed_leg["Service"][
+                        "DestinationText"
+                    ]["Text"]
 
                     # Entry
                     leg_data["Entry"] = timed_leg["LegBoard"]["StopPointName"]["Text"]
@@ -485,6 +491,9 @@ class Client:
             trip_result["StartEstimatedTime"] = trip_result.get("Transportation", [{}])[
                 0
             ].get("EntryEstimatedTime", None)
+            trip_result["EndTimetabledTime"] = trip_result.get("Transportation", [{}])[
+                -1
+            ].get("ExitTimetabledTime")
             trip_result["Delay"] = get_timedelta(
                 trip_result["StartTimetabledTime"], trip_result["StartEstimatedTime"]
             )
