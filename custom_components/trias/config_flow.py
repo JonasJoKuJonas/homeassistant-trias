@@ -25,9 +25,7 @@ def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-
     client = trias.Client(url=data["url"], api_key=data.get("api_key", ""))
-
     client.test_connection()
 
 
@@ -237,56 +235,86 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Handle search query
         elif user_input.get("station", "search") == "search":
-            client = self.hass.data[DOMAIN][self.config_entry.entry_id].client
+            # Get API credentials from config entry
+            config_entry = self.config_entry
+            api_key = config_entry.data.get("api_key", "")
+            url = config_entry.data["url"]
 
-            # Fetch locations from WebUntis
-            data = await self.hass.async_add_executor_job(
-                client.location_information_request, user_input["search_value"], 4
-            )
+            # SYNCHRONEN Client neu erstellen (nicht async)
+            # Wir können hier keinen async Client verwenden, da self.hass.helpers nicht verfügbar ist
+            client = trias.Client(url=url, api_key=api_key)
 
-            stop_points = {}
+            try:
+                # SYNCHRONER Aufruf mit async_add_executor_job
+                data = await self.hass.async_add_executor_job(
+                    client.location_information_request, user_input["search_value"], 4
+                )
 
-            if "Location" in data:
-                locations = data["Location"]
+                stop_points = {}
 
-                # Multiple locations
-                if isinstance(locations, list):
-                    for stop in locations:
+                if "Location" in data:
+                    locations = data["Location"]
+
+                    # Multiple locations
+                    if isinstance(locations, list):
+                        for stop in locations:
+                            stop_point_name = (
+                                stop["Location"]["LocationName"]["Text"]
+                                + ", "
+                                + stop["Location"]["StopPoint"]["StopPointName"]["Text"]
+                            )
+                            stop_point_id = stop["Location"]["StopPoint"][
+                                "StopPointRef"
+                            ]
+                            stop_points[stop_point_name] = stop_point_id
+                    else:  # Single location
                         stop_point_name = (
-                            stop["Location"]["LocationName"]["Text"]
+                            locations["Location"]["LocationName"]["Text"]
                             + ", "
-                            + stop["Location"]["StopPoint"]["StopPointName"]["Text"]
+                            + locations["Location"]["StopPoint"]["StopPointName"][
+                                "Text"
+                            ]
                         )
-                        stop_point_id = stop["Location"]["StopPoint"]["StopPointRef"]
+                        stop_point_id = locations["Location"]["StopPoint"][
+                            "StopPointRef"
+                        ]
                         stop_points[stop_point_name] = stop_point_id
-                else:  # Single location
-                    stop_point_name = (
-                        locations["Location"]["LocationName"]["Text"]
-                        + ", "
-                        + locations["Location"]["StopPoint"]["StopPointName"]["Text"]
-                    )
-                    stop_point_id = locations["Location"]["StopPoint"]["StopPointRef"]
-                    stop_points[stop_point_name] = stop_point_id
 
-            stop_point_names = ["search"] + list(stop_points.keys())
-            self._search_data["stop_points"] = stop_points
-            # Show selection form
-            return self.async_show_form(
-                step_id="search_station",
-                data_schema=vol.Schema(
-                    {
-                        vol.Optional(
-                            "search_value",
-                            default=user_input.get("search_value", ""),
-                        ): selector.TextSelector(selector.TextSelectorConfig()),
-                        vol.Optional(
-                            "station", default="search"
-                        ): selector.SelectSelector(
-                            selector.SelectSelectorConfig(options=stop_point_names)
-                        ),
-                    }
-                ),
-            )
+                stop_point_names = ["search"] + list(stop_points.keys())
+                self._search_data["stop_points"] = stop_points
+
+                # Show selection form
+                return self.async_show_form(
+                    step_id="search_station",
+                    data_schema=vol.Schema(
+                        {
+                            vol.Optional(
+                                "search_value",
+                                default=user_input.get("search_value", ""),
+                            ): selector.TextSelector(selector.TextSelectorConfig()),
+                            vol.Optional(
+                                "station", default="search"
+                            ): selector.SelectSelector(
+                                selector.SelectSelectorConfig(options=stop_point_names)
+                            ),
+                        }
+                    ),
+                )
+
+            except Exception as err:
+                _LOGGER.error(f"Error searching station: {err}")
+                return self.async_show_form(
+                    step_id="search_station",
+                    data_schema=vol.Schema(
+                        {
+                            vol.Optional(
+                                "search_value",
+                                default=user_input.get("search_value", ""),
+                            ): selector.TextSelector(selector.TextSelectorConfig()),
+                        }
+                    ),
+                    errors={"base": "search_error"},
+                )
 
         # Handle selection of a station
         else:

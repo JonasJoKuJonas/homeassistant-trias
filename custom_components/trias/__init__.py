@@ -43,7 +43,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator = hass.data[DOMAIN].pop(entry.entry_id)
+
+        # Client session schließen
+        try:
+            if coordinator and hasattr(coordinator, "client"):
+                await coordinator.client.close()
+        except Exception as err:
+            _LOGGER.warning(f"Error closing client session: {err}")
 
     return unload_ok
 

@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
+import async_timeout
+import aiohttp
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .trias_client import client as trias
+from .trias_client.async_client import AsyncTriasClient
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
-
-
 from homeassistant.exceptions import ConfigEntryNotReady
-from requests.exceptions import RequestException
 
 from .const import DEFAULT_DEPARTURE_LIMIT
 
@@ -34,7 +34,6 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         update_interval: int,
     ) -> None:
         """Initialize the data object."""
-
         super().__init__(
             hass=hass,
             logger=logger,
@@ -47,29 +46,41 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self._config = entry.options
 
         self.name = entry.title
-
         self._setup = False
 
         self._url: str = entry.data["url"]
         self._api_key: str = entry.data.get("api_key", "")
 
-        self.client: trias.Client = trias.Client(url=self._url, api_key=self._api_key)
+        # Async Client wird später erstellt
+        self.client: AsyncTriasClient | None = None
+
         self.stop_ids: list[str] = entry.options.get("stop_ids", [])
         self.departure_limit: str = entry.options.get(
             "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
         )
         self.stops: dict[dict] = {}
 
-        self.trip_list: list[str] = entry.options.get("trips", {})
+        self.trip_list: dict = entry.options.get("trips", {})
         # {
         #    "origin": {"id": "...", "name": "..."},
         #    "destination": {"id": "...", "name": "..."},
         # }
 
-        self.trips = {}
+        self.trips: dict[dict] = {}
+
+    async def _ensure_client(self):
+        """Ensure async client is created."""
+        if self.client is None:
+            _LOGGER.debug("Creating aiohttp session for Trias client")
+            session = aiohttp.ClientSession()
+
+            self.client = AsyncTriasClient(
+                api_key=self._api_key, url=self._url, session=session
+            )
 
     async def setup(self) -> bool:
         """Set up the Trias API."""
+        await self._ensure_client()
 
         stop_id_dict = {}
 
@@ -84,9 +95,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             }
 
             try:
-                station_data = await self.hass.async_add_executor_job(
-                    self.client.get_station_data, stop_id
-                )
+                station_data = await self.client.async_get_station_data(stop_id)
             except ApiError as error:
                 _LOGGER.error("Could not request data for %s reason %s", stop_id, error)
                 stop_dict["ok"] = False
@@ -97,6 +106,10 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 continue
             except HttpError as error:
                 _LOGGER.error(f"Http error {error.status_code}:\n{error.response}")
+                stop_dict["ok"] = False
+                continue
+            except Exception as error:
+                _LOGGER.error(f"Unexpected error for {stop_id}: {error}")
                 stop_dict["ok"] = False
                 continue
 
@@ -112,11 +125,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             ]
 
             self.stops[stop_id] = stop_dict
-
             self.add_stop(stop_dict)
 
-            # update options
-
+            # Update options if name changed
             if (
                 not self._config.get("stop_id_dict", {}).get(stop_id)
                 or self._config["stop_id_dict"][stop_id] != stop_dict["name"]
@@ -125,14 +136,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         if stop_id_dict:
             options = {**self._config}
-
             options["stop_id_dict"] = {
                 **options.get("stop_id_dict", {}),
                 **stop_id_dict,
             }
-
-            _LOGGER.info("Updatet stop infos: \n%s", stop_id_dict)
-            self._hass.config_entries.async_update_entry(self._entry, options=options)
+            _LOGGER.info("Updated stop infos: \n%s", stop_id_dict)
+            self.hass.config_entries.async_update_entry(self._entry, options=options)
 
         for trip_name, locations in self.trip_list.items():
             trip_id = trip_name.lower().replace(" ", "-")
@@ -150,11 +159,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 from_location_name, to_location_name = "", ""
 
             try:
-                from_station_data = await self._hass.async_add_executor_job(
-                    self.client.get_station_data, from_location_id
+                from_station_data = await self.client.async_get_station_data(
+                    from_location_id
                 )
-                to_station_data = await self._hass.async_add_executor_job(
-                    self.client.get_station_data, to_location_id
+                to_station_data = await self.client.async_get_station_data(
+                    to_location_id
                 )
 
             except ApiError as error:
@@ -184,14 +193,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
             if from_location_name != from_name or to_location_name != to_name:
                 options = {**self._config}
-
                 options["trips"][trip_name] = {
                     "origin": {"id": from_location_id, "name": from_name},
                     "destination": {"id": to_location_id, "name": to_name},
                 }
-
-                _LOGGER.info("Updatet trip infos: '%s'", trip_name)
-                self._hass.config_entries.async_update_entry(
+                _LOGGER.info("Updated trip infos: '%s'", trip_name)
+                self.hass.config_entries.async_update_entry(
                     self._entry, options=options
                 )
 
@@ -217,11 +224,13 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Get the latest data from the Trias API."""
+        await self._ensure_client()
 
         if not self._setup:
             try:
                 setup_ok = await self.setup()
-            except RequestException as err:
+            except Exception as err:
+                _LOGGER.error(f"Setup failed: {err}")
                 raise ConfigEntryNotReady from err
             if not setup_ok:
                 _LOGGER.error("Could not setup integration")
@@ -230,240 +239,211 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         _LOGGER.debug("Fetching new data from Trias API")
 
+        # Parallele Updates für Stops
+        stop_tasks = []
         for stop_id, data in self.stops.items():
-            self.stops[stop_id]["prevestly_ok"] = self.stops[stop_id]["ok"]
-            try:
-                departures = await self._hass.async_add_executor_job(
-                    self.client.get_departures, stop_id, self.departure_limit
-                )
-            except ApiError as err:
-                self.stops[stop_id]["ok"] = False
-                self.stops[stop_id]["data"] = {}
-                status = {
-                    "ok": False,
-                    "message": err,
-                    "exception": True,
-                }
-            else:
-                data = {}
+            task = self._async_update_stop(stop_id)
+            stop_tasks.append(task)
 
-                if departures[0]["EstimatedTime"]:
-                    data["next_departure"] = departures[0]["EstimatedTime"]
-                else:
-                    data["next_departure"] = departures[0]["TimetabledTime"]
-
-                departure_attr = []
-                for departure in departures:
-                    departure_attr.append(
-                        {
-                            "Mode": departure["mode"],
-                            "StopPointName": departure["StopPointName"],
-                            "LineName": departure["LineName"],
-                            "DestinationText": departure["DestinationText"],
-                            "StartTime": departure["EstimatedTime"]
-                            or departure["TimetabledTime"],
-                            "TimetabledTime": departure["TimetabledTime"],
-                            "EstimatedTime": departure["EstimatedTime"],
-                            "PlannedBay": departure.get("PlannedBay"),
-                            "Delay": (
-                                str(departure["Delay"])
-                                if departure.get("Delay")
-                                else None
-                            ),
-                            "DelaySeconds": (
-                                int(departure["Delay"].total_seconds())
-                                if departure.get("Delay") is not None
-                                else 0
-                            ),
-                            "DelayMinutes": (
-                                int(departure["Delay"].total_seconds() / 60)
-                                if departure.get("Delay") is not None
-                                else 0
-                            ),
-                        }
-                    )
-
-                self.stops[stop_id]["data"] = data
-
-                self.stops[stop_id]["attrs"]["departures"] = departure_attr
-
-                status = {
-                    "ok": True,
-                }
-
-            if not status["ok"] and self.stops[stop_id]["prevestly_ok"]:
-                _LOGGER.error(
-                    "Error when updating stop %s: %s",
-                    stop_id,
-                    status["message"],
-                )
-                continue
-        # _LOGGER.debug("Stops:\n" + json.dumps(self.stops, default=str, indent=2))
-
+        # Parallele Updates für Trips
+        trip_tasks = []
         for trip_id, data in self.trips.items():
-            self.trips[trip_id]["prevestly_ok"] = self.trips[trip_id]["ok"]
-            try:
-                trips = await self._hass.async_add_executor_job(
-                    self.client.get_trip,
-                    data["from"],
-                    data["to"],
-                    self.departure_limit,
-                )
+            task = self._async_update_trip(trip_id)
+            trip_tasks.append(task)
 
-            except ApiError as err:
-                self.trips[trip_id]["ok"] = False
-                self.trips[trip_id]["data"] = {}
-                status = {
-                    "ok": False,
-                    "message": err,
-                    "exception": True,
-                }
-            else:
-                if not trips:
-                    self.trips[trip_id]["ok"] = False
-                    self.trips[trip_id]["data"] = {}
-                    status = {
-                        "ok": False,
-                        "message": "Keine Trips gefunden",
-                        "exception": False,
-                    }
-                else:
-                    # Erster Trip wird als Hauptwert verwendet
-                    first_trip = trips[0]
-
-                    # Daten für den Haupt-Sensorwert (erster Trip)
-                    if first_trip.get("EstimatedStartTime"):
-                        next_departure = first_trip["EstimatedStartTime"]
-                    else:
-                        next_departure = first_trip["StartTime"]
-
-                    data = {"start": next_departure}
-
-                    # _LOGGER.debug("Trip %s data %s", trip_id, first_trip)
-
-                    # Attributes für den ersten Trip
-                    attr = {
-                        "StartTime": first_trip["StartTime"],
-                        "TimetabledStartTime": first_trip["StartTimetabledTime"],
-                        "EstimatedStartTime": first_trip.get("StartEstimatedTime"),
-                        "EndTime": first_trip["EndTime"],
-                        "TimetabledEndTime": first_trip.get("EndTimetabledTime"),
-                        "EstimatedEndTime": first_trip.get("EstimatedEndTime"),
-                        "Interchanges": first_trip["Interchanges"],
-                        "LineName": first_trip["Transportation"][0]["LineName"],
-                        "DestinationText": first_trip["Transportation"][0][
-                            "DestinationText"
-                        ],
-                        "Duration": first_trip["Duration"],
-                        "Delay": (
-                            str(first_trip["Delay"])
-                            if first_trip.get("Delay")
-                            else None
-                        ),
-                        "DelaySeconds": (
-                            int(first_trip["Delay"].total_seconds())
-                            if first_trip.get("Delay") is not None
-                            else 0
-                        ),
-                        "DelayMinutes": (
-                            int(first_trip["Delay"].total_seconds() / 60)
-                            if first_trip.get("Delay") is not None
-                            else 0
-                        ),
-                    }
-
-                    # Weitere Trips als departures-Liste
-                    departures = []
-                    for idx, trip in enumerate(trips):
-                        trip_info = {
-                            "index": idx,
-                            "StartTime": trip["StartTime"],
-                            "TimetabledStartTime": trip["StartTimetabledTime"],
-                            "EstimatedStartTime": trip.get("StartEstimatedTime"),
-                            "EndTime": trip["EndTime"],
-                            "TimetabledEndTime": trip.get("EndTimetabledTime"),
-                            "EstimatedEndTime": trip.get("EstimatedEndTime"),
-                            "Interchanges": trip["Interchanges"],
-                            "LineName": trip["Transportation"][0]["LineName"],
-                            "DestinationText": trip["Transportation"][0][
-                                "DestinationText"
-                            ],
-                            "Duration": trip["Duration"],
-                            "Delay": (
-                                str(trip["Delay"]) if trip.get("Delay") else None
-                            ),
-                            "DelaySeconds": (
-                                int(trip["Delay"].total_seconds())
-                                if trip.get("Delay") is not None
-                                else 0
-                            ),
-                            "DelayMinutes": (
-                                int(trip["Delay"].total_seconds() / 60)
-                                if trip.get("Delay") is not None
-                                else 0
-                            ),
-                        }
-
-                        # Berechne Verzögerung für Abfahrt
-                        if trip_info.get("EstimatedStartTime") and trip_info.get(
-                            "StartTime"
-                        ):
-                            delay = (
-                                trip_info["EstimatedStartTime"] - trip_info["StartTime"]
-                            )
-                            trip_info["CurrentDelay"] = str(delay)
-                            trip_info["CurrentDelayMinutes"] = int(
-                                delay.total_seconds() / 60
-                            )
-
-                        departures.append(trip_info)
-
-                    attr["departures"] = departures
-
-                    # Füge zusätzlich die Anzahl der verfügbaren Trips hinzu
-                    attr["available_trips"] = len(trips)
-
-                    self.trips[trip_id]["data"] = data
-                    self.trips[trip_id]["attrs"].update(attr)
-
-                    status = {
-                        "ok": True,
-                    }
-
-            if not status["ok"] and self.trips[trip_id]["prevestly_ok"]:
-                _LOGGER.warning(
-                    "Error when updating trip %s: %s",
-                    trip_id,
-                    status["message"],
-                )
-                continue
+        # Alle Tasks parallel ausführen mit Gesamt-Timeout
+        try:
+            async with async_timeout.timeout(90):  # 90s Gesamt-Timeout
+                await asyncio.gather(*stop_tasks, *trip_tasks, return_exceptions=True)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Update timed out after 90 seconds")
+            # Teilweise Daten sind bereits aktualisiert
+            pass
 
         return True
 
+    async def _async_update_stop(self, stop_id: str):
+        """Update a single stop asynchronously with all attributes."""
+        self.stops[stop_id]["prevestly_ok"] = self.stops[stop_id]["ok"]
+
+        try:
+            async with async_timeout.timeout(30):  # 30s pro Stop
+                departures = await self.client.async_get_departures(
+                    stop_id, int(self.departure_limit)
+                )
+        except (asyncio.TimeoutError, ApiError) as err:
+            _LOGGER.warning(f"Failed to update stop {stop_id}: {err}")
+            self.stops[stop_id]["ok"] = False
+            self.stops[stop_id]["data"] = {}
+            return
+
+        # GENAU DAS GLEICHE VERHALTEN WIE IM ALTEN CODE
+        if not departures:
+            self.stops[stop_id]["ok"] = False
+            self.stops[stop_id]["data"] = {}
+            return
+
+        data = {}
+
+        # Nächste Abfahrt (genau wie im alten Code)
+        if departures[0]["EstimatedTime"]:
+            data["next_departure"] = departures[0]["EstimatedTime"]
+        else:
+            data["next_departure"] = departures[0]["TimetabledTime"]
+
+        # Departure-Liste mit allen Attributen (genau wie im alten Code)
+        departure_attr = []
+        for departure in departures:
+            departure_attr.append(
+                {
+                    "Mode": departure["mode"],
+                    "StopPointName": departure["StopPointName"],
+                    "LineName": departure["LineName"],
+                    "DestinationText": departure["DestinationText"],
+                    "StartTime": departure["EstimatedTime"]
+                    or departure["TimetabledTime"],
+                    "TimetabledTime": departure["TimetabledTime"],
+                    "EstimatedTime": departure["EstimatedTime"],
+                    "PlannedBay": departure.get("PlannedBay"),
+                    "Delay": (
+                        str(departure["Delay"]) if departure.get("Delay") else None
+                    ),
+                    "DelaySeconds": (
+                        int(departure["Delay"].total_seconds())
+                        if departure.get("Delay") is not None
+                        else 0
+                    ),
+                    "DelayMinutes": (
+                        int(departure["Delay"].total_seconds() / 60)
+                        if departure.get("Delay") is not None
+                        else 0
+                    ),
+                }
+            )
+
+        self.stops[stop_id]["data"] = data
+        self.stops[stop_id]["attrs"]["departures"] = departure_attr
+        self.stops[stop_id]["ok"] = True
+
+    async def _async_update_trip(self, trip_id: str):
+        """Update a single trip asynchronously with all attributes."""
+        data = self.trips[trip_id]
+        self.trips[trip_id]["prevestly_ok"] = data["ok"]
+
+        try:
+            async with async_timeout.timeout(35):  # 35s pro Trip
+                trips = await self.client.async_get_trip(
+                    data["from"], data["to"], int(self.departure_limit)
+                )
+        except (asyncio.TimeoutError, ApiError) as err:
+            _LOGGER.warning(f"Failed to update trip {trip_id}: {err}")
+            self.trips[trip_id]["ok"] = False
+            self.trips[trip_id]["data"] = {}
+            return
+
+        # GENAU DAS GLEICHE VERHALTEN WIE IM ALTEN CODE
+        if not trips:
+            self.trips[trip_id]["ok"] = False
+            self.trips[trip_id]["data"] = {}
+            return
+
+        # Erster Trip wird als Hauptwert verwendet (wie im alten Code)
+        first_trip = trips[0]
+
+        # Daten für den Haupt-Sensorwert (erster Trip)
+        if first_trip.get("EstimatedStartTime"):
+            next_departure = first_trip["EstimatedStartTime"]
+        else:
+            next_departure = first_trip["StartTime"]
+
+        trip_data = {"start": next_departure}
+
+        # Attributes für den ersten Trip (wie im alten Code)
+        attr = {
+            "StartTime": first_trip["StartTime"],
+            "TimetabledStartTime": first_trip["StartTimetabledTime"],
+            "EstimatedStartTime": first_trip.get("StartEstimatedTime"),
+            "EndTime": first_trip["EndTime"],
+            "TimetabledEndTime": first_trip.get("EndTimetabledTime"),
+            "EstimatedEndTime": first_trip.get("EstimatedEndTime"),
+            "Interchanges": first_trip["Interchanges"],
+            "LineName": first_trip["Transportation"][0]["LineName"],
+            "DestinationText": first_trip["Transportation"][0]["DestinationText"],
+            "Duration": first_trip["Duration"],
+            "Delay": (str(first_trip["Delay"]) if first_trip.get("Delay") else None),
+            "DelaySeconds": (
+                int(first_trip["Delay"].total_seconds())
+                if first_trip.get("Delay") is not None
+                else 0
+            ),
+            "DelayMinutes": (
+                int(first_trip["Delay"].total_seconds() / 60)
+                if first_trip.get("Delay") is not None
+                else 0
+            ),
+        }
+
+        # Weitere Trips als departures-Liste (wie im alten Code)
+        departures = []
+        for idx, trip in enumerate(trips):
+            trip_info = {
+                "index": idx,
+                "StartTime": trip["StartTime"],
+                "TimetabledStartTime": trip["StartTimetabledTime"],
+                "EstimatedStartTime": trip.get("StartEstimatedTime"),
+                "EndTime": trip["EndTime"],
+                "TimetabledEndTime": trip.get("EndTimetabledTime"),
+                "EstimatedEndTime": trip.get("EstimatedEndTime"),
+                "Interchanges": trip["Interchanges"],
+                "LineName": trip["Transportation"][0]["LineName"],
+                "DestinationText": trip["Transportation"][0]["DestinationText"],
+                "Duration": trip["Duration"],
+                "Delay": (str(trip["Delay"]) if trip.get("Delay") else None),
+                "DelaySeconds": (
+                    int(trip["Delay"].total_seconds())
+                    if trip.get("Delay") is not None
+                    else 0
+                ),
+                "DelayMinutes": (
+                    int(trip["Delay"].total_seconds() / 60)
+                    if trip.get("Delay") is not None
+                    else 0
+                ),
+            }
+
+            # Berechne Verzögerung für Abfahrt (wie im alten Code)
+            if trip_info.get("EstimatedStartTime") and trip_info.get("StartTime"):
+                delay = trip_info["EstimatedStartTime"] - trip_info["StartTime"]
+                trip_info["CurrentDelay"] = str(delay)
+                trip_info["CurrentDelayMinutes"] = int(delay.total_seconds() / 60)
+
+            departures.append(trip_info)
+
+        attr["departures"] = departures
+
+        # Füge zusätzlich die Anzahl der verfügbaren Trips hinzu
+        attr["available_trips"] = len(trips)
+
+        self.trips[trip_id]["data"] = trip_data
+        self.trips[trip_id]["attrs"].update(attr)
+        self.trips[trip_id]["ok"] = True
+
     def add_stop(self, stop: dict):
         """Add stop to the entity list."""
-
         if stop["created"]:
             _LOGGER.warning(
                 "Sensor for station with id %s was already created", stop["id"]
             )
             return
-
         self.stops[stop["id"]]["created"] = True
         _LOGGER.debug("add_stop %s", stop["id"])
 
     def add_trip(self, trip: dict):
         """Add trip to the entity list."""
-
         if trip["created"]:
             _LOGGER.warning(
                 "Sensor for station with id %s was already created", trip["id"]
             )
             return
-
         self.trips[trip["id"]]["created"] = True
         _LOGGER.debug("add_trip %s", trip["id"])
-
-
-class DummyException(Exception):
-    pass
