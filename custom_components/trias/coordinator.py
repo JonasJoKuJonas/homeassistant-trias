@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 import async_timeout
 import aiohttp
 
@@ -347,6 +347,15 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             self.trips[trip_id]["data"] = {}
             return
 
+        # TRĪAS liefert teils Verbindungen in der Vergangenheit: rausfiltern.
+        trips = [trip for trip in trips if not self._is_trip_in_past(trip)]
+        if not trips:
+            self.trips[trip_id]["ok"] = False
+            self.trips[trip_id]["data"] = {}
+            self.trips[trip_id]["attrs"]["departures"] = []
+            self.trips[trip_id]["attrs"]["available_trips"] = 0
+            return
+
         # Erster Trip wird als Hauptwert verwendet (wie im alten Code)
         first_trip = trips[0]
 
@@ -427,6 +436,15 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self.trips[trip_id]["data"] = trip_data
         self.trips[trip_id]["attrs"].update(attr)
         self.trips[trip_id]["ok"] = True
+
+    def _is_trip_in_past(self, trip: dict, tolerance_seconds: int = 30) -> bool:
+        """Return True if a trip start time is older than now minus tolerance."""
+        start_time = trip.get("StartEstimatedTime") or trip.get("StartTime")
+        if start_time is None:
+            return False
+
+        now = datetime.now(start_time.tzinfo) if start_time.tzinfo else datetime.now()
+        return start_time < (now - timedelta(seconds=tolerance_seconds))
 
     def add_stop(self, stop: dict):
         """Add stop to the entity list."""
