@@ -73,6 +73,11 @@ class AsyncTriasClient:
             "User-Agent": "HomeAssistant/Trias-Integration",
         }
 
+        # If we know already that Bearer auth works, use it right away.
+        # Otherwise, we'll try the standard method first and fall back to Bearer if we get HTTP 401.
+        if self._auth_method == AuthMethod.BEARER:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
         try:
             async with async_timeout.timeout(self._timeout):
                 async with self._session.post(
