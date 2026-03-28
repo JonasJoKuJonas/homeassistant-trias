@@ -148,6 +148,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Updated stop infos: \n%s", stop_id_dict)
             self.hass.config_entries.async_update_entry(self._entry, options=options)
 
+        if self._auth_method != self.client.auth_method:
+            options = {**self._config}
+            options["auth_method"] = self.client.auth_method
+            self.hass.config_entries.async_update_entry(self._entry, options=options)
+
         for trip_name, locations in self.trip_list.items():
             trip_id = trip_name.lower().replace(" ", "-")
 
