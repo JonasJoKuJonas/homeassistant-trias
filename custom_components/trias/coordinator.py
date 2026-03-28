@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .trias_client.async_client import AsyncTriasClient
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
+from .trias_client.async_client import AuthMethod
 
 from .const import DEFAULT_DEPARTURE_LIMIT
 
@@ -50,6 +51,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._url: str = entry.data["url"]
         self._api_key: str = entry.data.get("api_key", "")
+        self._auth_method: AuthMethod = AuthMethod(entry.options.get("auth_method", AuthMethod.REQUEST.value))
 
         # Async Client wird später erstellt
         self.client: AsyncTriasClient | None = None
@@ -75,7 +77,10 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             session = aiohttp.ClientSession()
 
             self.client = AsyncTriasClient(
-                api_key=self._api_key, url=self._url, session=session
+                api_key=self._api_key,
+                url=self._url,
+                session=session,
+                auth_method=self._auth_method,
             )
 
     async def setup(self) -> bool:
