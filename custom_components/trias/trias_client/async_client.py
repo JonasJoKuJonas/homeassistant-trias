@@ -19,9 +19,11 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class AuthMethod(StrEnum):
     REQUEST = "request"
     BEARER = "bearer"
+
 
 class AsyncTriasClient:
     """Async client for Trias API."""
@@ -37,7 +39,7 @@ class AsyncTriasClient:
         self.url = url
         self._session = session
         self._timeout = 30
-        self._auth_method = auth_method
+        self.auth_method = auth_method
 
     async def ensure_session(self):
         """Ensure we have a session."""
@@ -75,7 +77,7 @@ class AsyncTriasClient:
 
         # If we know already that Bearer auth works, use it right away.
         # Otherwise, we'll try the standard method first and fall back to Bearer if we get HTTP 401.
-        if self._auth_method == AuthMethod.BEARER:
+        if self.auth_method == AuthMethod.BEARER:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
         try:
@@ -83,12 +85,14 @@ class AsyncTriasClient:
                 async with self._session.post(
                     self.url, data=xml.encode("utf-8"), headers=headers
                 ) as response:
-
                     response_text = ""
 
                     # When encountering HTTP 401 and we haven't tried bearer auth yet,
                     # retry with HTTP Bearer authentication
-                    if response.status == 401 and not self._auth_method == AuthMethod.Bearer:
+                    if (
+                        response.status == 401
+                        and not self.auth_method == AuthMethod.BEARER
+                    ):
                         _LOGGER.warning(
                             "Received HTTP 401 (Unauthorized). Retrying with Bearer token authentication."
                         )
@@ -99,7 +103,7 @@ class AsyncTriasClient:
                             if auth_response.status == 200:
                                 # Bearer auth succeeded, save this for future requests
                                 response_text = await auth_response.text()
-                                self._auth_method = AuthMethod.BEARER
+                                self.auth_method = AuthMethod.BEARER
                             else:
                                 raise exceptions.HttpError(
                                     auth_response.status, await auth_response.text()
