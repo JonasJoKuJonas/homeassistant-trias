@@ -281,7 +281,13 @@ class Client:
         xml = xml.replace("NumberOfResults__", str(number_of_results))
         xml = xml.replace("IncludePtModes__", str(include_pt_podes).lower())
 
-        result = self.get(xml)
+        result = None
+        try:
+            result = self.get(xml)
+        except exceptions.ApiError:
+            number_of_results = 0
+            result = {"LocationInformationResponse": {}}
+            pass
 
         error = None
         try:
