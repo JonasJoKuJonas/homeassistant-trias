@@ -84,16 +84,36 @@ class AsyncTriasClient:
                     self.url, data=xml.encode("utf-8"), headers=headers
                 ) as response:
 
-                    if response.status == 400:
+                    response_text = ""
+
+                    # When encountering HTTP 401 and we haven't tried bearer auth yet,
+                    # retry with HTTP Bearer authentication
+                    if response.status == 401 and not self._auth_method == AuthMethod.Bearer:
+                        _LOGGER.warning(
+                            "Received HTTP 401 (Unauthorized). Retrying with Bearer token authentication."
+                        )
+                        headers["Authorization"] = f"Bearer {self.api_key}"
+                        async with self._session.post(
+                            self.url, data=xml.encode("utf-8"), headers=headers
+                        ) as auth_response:
+                            if auth_response.status == 200:
+                                # Bearer auth succeeded, save this for future requests
+                                response_text = await auth_response.text()
+                                self._auth_method = AuthMethod.BEARER
+                            else:
+                                raise exceptions.HttpError(
+                                    auth_response.status, await auth_response.text()
+                                )
+                    elif response.status == 400:
                         raise exceptions.InvalidRequest
-                    if response.status == 403:
+                    elif response.status == 403:
                         raise exceptions.InvalidApiKey
-                    if response.status != 200:
+                    elif response.status != 200:
                         raise exceptions.HttpError(
                             response.status, await response.text()
                         )
-
-                    response_text = await response.text()
+                    else:
+                        response_text = await response.text()
 
                     # Parse response
                     response_dict = xmltodict.parse(response_text)
