@@ -1,5 +1,7 @@
 """Async client for Trias API."""
 
+from enum import StrEnum
+
 import aiohttp
 import async_timeout
 import xmltodict
@@ -17,15 +19,25 @@ from .utils import (
 
 _LOGGER = logging.getLogger(__name__)
 
+class AuthMethod(StrEnum):
+    REQUEST = "request"
+    BEARER = "bearer"
 
 class AsyncTriasClient:
     """Async client for Trias API."""
 
-    def __init__(self, api_key: str, url: str, session: aiohttp.ClientSession = None):
+    def __init__(
+        self,
+        api_key: str,
+        url: str,
+        session: aiohttp.ClientSession = None,
+        auth_method: AuthMethod = AuthMethod.REQUEST,
+    ):
         self.api_key = api_key
         self.url = url
         self._session = session
         self._timeout = 30
+        self._auth_method = auth_method
 
     async def ensure_session(self):
         """Ensure we have a session."""
