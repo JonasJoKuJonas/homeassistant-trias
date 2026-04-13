@@ -13,10 +13,9 @@ from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .trias_client.async_client import AsyncTriasClient
+from .trias_client.async_client import AsyncTriasClient, AuthMethod
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
-from .trias_client.async_client import AuthMethod
 
 from .const import DEFAULT_DEPARTURE_LIMIT
 
