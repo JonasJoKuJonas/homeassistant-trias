@@ -111,7 +111,10 @@ class Client:
 
     def test_connection(self) -> bool:
         """Simple check if API key + URL work"""
-        self.location_information_request("e", ignore_low_probability=True)
+        try:
+            self.location_information_request("e", ignore_low_probability=True)
+        except exceptions.ApiError:
+            pass  # API reachable and responding → OK
         return True
 
     def stop_event_request(
