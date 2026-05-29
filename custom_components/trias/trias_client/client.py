@@ -129,7 +129,10 @@ class Client:
 
     def test_connection(self) -> bool:
         """Simple check if API key + URL work"""
-        self.location_information_request("e", ignore_low_probability=True)
+        try:
+            self.location_information_request("e", ignore_low_probability=True)
+        except exceptions.ApiError:
+            pass
         return True
 
     def stop_event_request(
@@ -281,13 +284,7 @@ class Client:
         xml = xml.replace("NumberOfResults__", str(number_of_results))
         xml = xml.replace("IncludePtModes__", str(include_pt_podes).lower())
 
-        result = None
-        try:
-            result = self.get(xml)
-        except exceptions.ApiError:
-            number_of_results = 0
-            result = {"LocationInformationResponse": {}}
-            pass
+        result = self.get(xml)
 
         error = None
         try:
