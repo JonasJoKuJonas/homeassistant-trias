@@ -85,7 +85,6 @@ class Client:
             )
             auth_req.encoding = "utf-8"
             if auth_req.status_code == 200:
-                # Bearer auth succeeded, save this for future requests
                 req = auth_req
             else:
                 raise exceptions.HttpError(auth_req.status_code, auth_req.text)
