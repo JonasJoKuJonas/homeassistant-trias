@@ -150,7 +150,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             self.hass.config_entries.async_update_entry(self._entry, options=options)
 
         if self._auth_method != self.client.auth_method:
-            options = {**self._config}
+            options = dict(self._entry.options)
             options["auth_method"] = self.client.auth_method
             self.hass.config_entries.async_update_entry(self._entry, options=options)
 
