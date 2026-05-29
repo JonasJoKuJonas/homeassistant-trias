@@ -50,9 +50,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._url: str = entry.data["url"]
         self._api_key: str = entry.data.get("api_key", "")
-        self._auth_method: AuthMethod = AuthMethod(
-            entry.options.get("auth_method", AuthMethod.REQUEST.value)
-        )
+        try:
+            self._auth_method: AuthMethod = AuthMethod(
+                entry.options.get("auth_method", AuthMethod.REQUEST.value)
+            )
+        except ValueError:
+            self._auth_method = AuthMethod.REQUEST
 
         # Async Client wird später erstellt
         self.client: AsyncTriasClient | None = None
