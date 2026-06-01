@@ -69,13 +69,30 @@ class Client:
 
         req.encoding = "utf-8"
 
-        if req.status_code == 400:
+        # When encountering HTTP 401 and we haven't tried bearer auth yet,
+        # retry with HTTP Bearer authentication
+        if req.status_code == 401:
+            _LOGGER.warning(
+                "Received HTTP 401 (Unauthorized). Retrying with Bearer token authentication."
+            )
+            headers["Authorization"] = f"Bearer {self.api_key}"
+            auth_req = requests.request(
+                "post",
+                self.url,
+                data=xml.encode("utf-8"),
+                headers=headers,
+                timeout=20,
+            )
+            auth_req.encoding = "utf-8"
+            if auth_req.status_code == 200:
+                req = auth_req
+            else:
+                raise exceptions.HttpError(auth_req.status_code, auth_req.text)
+        elif req.status_code == 400:
             raise exceptions.InvalidRequest
-
-        if req.status_code == 403:
+        elif req.status_code == 403:
             raise exceptions.InvalidApiKey
-
-        if req.status_code != 200:
+        elif req.status_code != 200:
             raise exceptions.HttpError(req.status_code, req.text)
 
         response = req.text
@@ -111,7 +128,10 @@ class Client:
 
     def test_connection(self) -> bool:
         """Simple check if API key + URL work"""
-        self.location_information_request("e", ignore_low_probability=True)
+        try:
+            self.location_information_request("e", ignore_low_probability=True)
+        except exceptions.ApiError:
+            pass
         return True
 
     def stop_event_request(

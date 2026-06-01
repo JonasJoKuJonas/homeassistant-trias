@@ -87,7 +87,7 @@ OPTIONS_MENU = {"stops": "Stops", "trips": "Trips"}
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle the option flow for WebUntis."""
+    """Handle the option flow for the Trias integration."""
 
     def __init__(self) -> None:
         """Initialize options flow."""

@@ -13,7 +13,7 @@ from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .trias_client.async_client import AsyncTriasClient
+from .trias_client.async_client import AsyncTriasClient, AuthMethod
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -50,6 +50,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._url: str = entry.data["url"]
         self._api_key: str = entry.data.get("api_key", "")
+        try:
+            self._auth_method: AuthMethod = AuthMethod(
+                entry.options.get("auth_method", AuthMethod.REQUEST.value)
+            )
+        except ValueError:
+            self._auth_method = AuthMethod.REQUEST
 
         # Async Client wird später erstellt
         self.client: AsyncTriasClient | None = None
@@ -75,7 +81,10 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             session = aiohttp.ClientSession()
 
             self.client = AsyncTriasClient(
-                api_key=self._api_key, url=self._url, session=session
+                api_key=self._api_key,
+                url=self._url,
+                session=session,
+                auth_method=self._auth_method,
             )
 
     async def setup(self) -> bool:
@@ -141,6 +150,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 **stop_id_dict,
             }
             _LOGGER.info("Updated stop infos: \n%s", stop_id_dict)
+            self.hass.config_entries.async_update_entry(self._entry, options=options)
+
+        if self._auth_method != self.client.auth_method:
+            options = dict(self._entry.options)
+            options["auth_method"] = self.client.auth_method
             self.hass.config_entries.async_update_entry(self._entry, options=options)
 
         for trip_name, locations in self.trip_list.items():
