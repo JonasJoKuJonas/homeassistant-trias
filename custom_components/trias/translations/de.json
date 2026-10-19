@@ -1,0 +1,91 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Gerät ist bereits eingerichtet"
+        },
+        "error": {
+            "invalid_request": "Ungültige Anfrage",
+            "invalid_api_key": "Ungültiger API-Schlüssel",
+            "http_error": "HTTP-Fehler aufgetreten",
+            "invalid_url": "Ungültige URL",
+            "unknown": "Unerwarteter Fehler. Weitere Informationen stehen in den Protokollen."
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Name",
+                    "url": "URL",
+                    "api_key": "API-Schlüssel"
+                }
+            }
+        }
+    },
+    "options": {
+        "error": {
+            "search_error": "Fehler bei der Suche nach Haltestellen"
+        },
+        "step": {
+            "init": {
+                "menu_options": {
+                    "stops": "Haltestellen",
+                    "trips": "Verbindungen"
+                }
+            },
+            "search_station": {
+                "title": "Haltestelle suchen",
+                "description": "Gib den Namen eines Ortes ein, um danach zu suchen",
+                "data": {
+                    "search_value": "Ortsname",
+                    "station": "Orte"
+                },
+                "data_description": {
+                    "station": "Wähle den gewünschten Ort aus. Wähle „Suchen“, um erneut zu suchen."
+                }
+            },
+            "stops": {
+                "title": "Haltestellen",
+                "description": "Haltestellen, die als Sensoren erstellt werden",
+                "data": {
+                    "stop_id_dict": "Haltestellenliste",
+                    "add_stop": "Haltestelle hinzufügen",
+                    "departure_limit_config": "Maximale Anzahl an Abfahrten"
+                },
+                "data_description": {
+                    "stop_id_dict": "Entferne einen Eintrag, um den Sensor zu löschen",
+                    "add_stop": "Aktivieren, um nach einer Haltestelle zu suchen"
+                }
+            },
+            "trips": {
+                "title": "Verbindungen",
+                "description": "Verbindungen, die als Sensoren erstellt werden",
+                "data": {
+                    "trips": "Verbindungsliste",
+                    "add_stop": "Verbindung hinzufügen"
+                },
+                "data_description": {
+                    "trips": "Entferne einen Eintrag, um den Sensor zu löschen. Benenne den Eintrag um, um den Sensor umzubenennen.",
+                    "add_stop": "Aktivieren, um eine neue Verbindung hinzuzufügen"
+                }
+            },
+            "trip_name": {
+                "title": "Verbindung benennen",
+                "data": {
+                    "trip_name": "Verbindungsname",
+                    "trip": "Verbindungsdaten",
+                    "max_interchanges": "Maximale Anzahl an Umstiegen"
+                },
+                "data_description": {
+                    "trip": "Start und Ziel der Verbindung",
+                    "max_interchanges": "Leer lassen, um beliebig viele Umstiege zu erlauben"
+                }
+            }
+        }
+    },
+    "selector": {
+        "station_search": {
+            "options": {
+                "search": "Erneut suchen"
+            }
+        }
+    }
+}

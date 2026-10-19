@@ -23,6 +23,12 @@
   "options": {
     "error": {},
     "step": {
+      "init": {
+        "menu_options": {
+          "stops": "Stops",
+          "trips": "Trips"
+        }
+      },
       "search_station": {
         "title": "Search Location",
         "description": "Enter Location name to search",
@@ -70,6 +76,13 @@
           "trip": "Start and End of trip",
           "max_interchanges": "Leave empty to allow any number of interchanges"
         }
+      }
+    }
+  },
+  "selector": {
+    "station_search": {
+      "options": {
+        "search": "Search again"
       }
     }
   }

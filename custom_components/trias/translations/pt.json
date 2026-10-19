@@ -20,6 +20,12 @@
   "options": {
     "error": {},
     "step": {
+      "init": {
+        "menu_options": {
+          "stops": "Paragens",
+          "trips": "Viagens"
+        }
+      },
       "search_station": {
         "title": "Procurar Localização",
         "description": "Introduza o nome da localização para procurar",
@@ -66,6 +72,13 @@
           "trip": "Início e fim da viagem",
           "max_interchanges": "Deixe vazio para permitir qualquer número de transbordos"
         }
+      }
+    }
+  },
+  "selector": {
+    "station_search": {
+      "options": {
+        "search": "Procurar novamente"
       }
     }
   }

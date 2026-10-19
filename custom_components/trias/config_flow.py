@@ -82,8 +82,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-
-OPTIONS_MENU = {"stops": "Stops", "trips": "Trips"}
+OPTIONS_MENU = ["stops", "trips"]
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
@@ -302,7 +301,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             vol.Optional(
                                 "station", default="search"
                             ): selector.SelectSelector(
-                                selector.SelectSelectorConfig(options=stop_point_names)
+                                selector.SelectSelectorConfig(
+                                    options=stop_point_names,
+                                    translation_key="station_search",
+                                )
                             ),
                         }
                     ),
