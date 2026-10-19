@@ -197,6 +197,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "trip",
                             description={"suggested_value": add},
                         ): selector.ObjectSelector(),
+                        vol.Optional("max_interchanges"): vol.All(
+                            int, vol.Range(min=0)
+                        ),
                     }
                 ),
             )
@@ -207,6 +210,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     "destination": user_input["trip"]["destination"],
                 }
             }
+            if "max_interchanges" in user_input:
+                trip[user_input["trip_name"]]["max_interchanges"] = user_input[
+                    "max_interchanges"
+                ]
             return await self.async_step_trips(None, trip)
 
     async def async_step_search_station(

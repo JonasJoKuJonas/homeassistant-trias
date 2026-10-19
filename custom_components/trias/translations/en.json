@@ -63,10 +63,12 @@
         "title": "Name Trips",
         "data": {
           "trip_name": "Trip Name",
-          "trip": "Trip Data"
+          "trip": "Trip Data",
+          "max_interchanges": "Maximum number of interchanges"
         },
         "data_description": {
-          "trip": "Start and End of trip"
+          "trip": "Start and End of trip",
+          "max_interchanges": "Leave empty to allow any number of interchanges"
         }
       }
     }

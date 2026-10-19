@@ -59,10 +59,12 @@
         "title": "Nomear Viagens",
         "data": {
           "trip_name": "Nome da Viagem",
-          "trip": "Dados da Viagem"
+          "trip": "Dados da Viagem",
+          "max_interchanges": "Número máximo de transbordos"
         },
         "data_description": {
-          "trip": "Início e fim da viagem"
+          "trip": "Início e fim da viagem",
+          "max_interchanges": "Deixe vazio para permitir qualquer número de transbordos"
         }
       }
     }

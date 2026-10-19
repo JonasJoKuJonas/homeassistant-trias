@@ -210,6 +210,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 options["trips"][trip_name] = {
                     "origin": {"id": from_location_id, "name": from_name},
                     "destination": {"id": to_location_id, "name": to_name},
+                    **(
+                        {"max_interchanges": locations["max_interchanges"]}
+                        if "max_interchanges" in locations
+                        else {}
+                    ),
                 }
                 _LOGGER.info("Updated trip infos: '%s'", trip_name)
                 self.hass.config_entries.async_update_entry(
@@ -224,6 +229,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 "name": trip_name,
                 "from": from_location_id,
                 "to": to_location_id,
+                "max_interchanges": locations.get("max_interchanges"),
                 "data": {},
                 "attrs": {
                     "from": from_name,
@@ -363,6 +369,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         # TRĪAS liefert teils Verbindungen in der Vergangenheit: rausfiltern.
         trips = [trip for trip in trips if not self._is_trip_in_past(trip)]
+        max_interchanges = data.get("max_interchanges")
+        if max_interchanges is not None:
+            trips = [
+                trip for trip in trips if trip["Interchanges"] <= max_interchanges
+            ]
         if not trips:
             self.trips[trip_id]["ok"] = False
             self.trips[trip_id]["data"] = {}
