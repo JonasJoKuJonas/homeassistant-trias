@@ -80,10 +80,9 @@ After the initial setup, configure your sensors through the options flow:
 1. Find the `trias` integration in **Devices & Services**
 2. Click **Configure** (the gear icon) on the `trias` entry
 3. In the options flow, you can add:
-   - **📍 Stations**: Add stop/station sensors for departure monitoring
+   - **📍 Stations**: Open the stop menu to add stops, delete one or more stop sensors, or change the global maximum number of results
    - **🗺️ Trips**: Add journey/trip sensors for route planning between stops
-4. Follow the prompts to select your desired stops, stations, or routes
-5. Click **Submit** to create the sensors
+4. Follow the prompts to select your desired stops, stations, or routes. Changes are saved when you submit each flow.
 
 ---
 

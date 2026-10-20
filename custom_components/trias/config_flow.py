@@ -94,7 +94,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self._search_data = {}
         self._pending_trip_names: dict[str, str] = {}
-        self._pending_stop_names: dict[str, str] = {}
         self._pending_trip_locations: dict[str, dict] = {}
 
     def _trip_already_exists(self, origin_id: str, destination_id: str) -> bool:
@@ -176,71 +175,113 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_create_entry(title="", data=options)
 
     async def async_step_stops(
-        self, user_input: dict[str, str] = None, add={}
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the stops options."""
+        """Show the stops options menu."""
+        registry = er.async_get(self.hass)
+        stop_ids = self.config_entry.options.get("stops", {})
+        menu_options = ["add_stop"]
+        if any(
+            entity.config_entry_id == self.config_entry.entry_id
+            and entity.domain == "sensor"
+            and entity.unique_id in stop_ids
+            for entity in registry.entities.values()
+        ):
+            menu_options.append("delete_stops")
+        menu_options.append("global_options")
+        return self.async_show_menu(step_id="stops", menu_options=menu_options)
+
+    async def async_step_add_stop(
+        self,
+        user_input: dict[str, Any] | None = None,
+        add: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Search for and immediately save a new stop."""
+        if add is None:
+            return await self.async_step_search_station(
+                function=self.async_step_add_stop
+            )
+
+        stops = dict(self.config_entry.options.get("stops", {}))
+        for stop_id, name in add.items():
+            stops[stop_id] = {"name": name}
+        return await self.save({"stops": stops})
+
+    async def async_step_delete_stops(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Delete one or more configured stop sensors."""
+        registry = er.async_get(self.hass)
+        stop_ids = self.config_entry.options.get("stops", {})
+        stop_entities = [
+            entity
+            for entity in registry.entities.values()
+            if entity.config_entry_id == self.config_entry.entry_id
+            and entity.domain == "sensor"
+            and entity.unique_id in stop_ids
+        ]
+        if not stop_entities:
+            return self.async_abort(reason="no_stop_sensors")
 
         if user_input is None:
-            self._pending_stop_names.update(
-                {
-                    stop_id: name
-                    for stop_id, name in add.items()
-                    if isinstance(name, str)
-                }
-            )
-            stops = {
-                stop_id: data if isinstance(data, dict) else {}
-                for stop_id, data in self.config_entry.options.get("stops", {}).items()
-            }
-            stops.update(
-                {
-                    stop_id: {"name": name} if isinstance(name, str) else {}
-                    for stop_id, name in add.items()
-                }
-            )
-
+            options = []
+            for entity in stop_entities:
+                state = self.hass.states.get(entity.entity_id)
+                friendly_name = (
+                    state.attributes.get("friendly_name") if state else None
+                ) or entity.original_name or entity.entity_id
+                options.append(
+                    {
+                        "label": f"{friendly_name} ({entity.entity_id})",
+                        "value": entity.unique_id,
+                    }
+                )
             return self.async_show_form(
-                step_id="stops",
+                step_id="delete_stops",
                 data_schema=vol.Schema(
                     {
-                        vol.Optional(
-                            "stops",
-                            description={"suggested_value": stops},
-                        ): selector.ObjectSelector(),
-                        vol.Optional("add_stop", default=False): bool,
-                        vol.Optional(
-                            "departure_limit_config",
-                            default=self.config_entry.options.get(
-                                "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
-                            ),
-                        ): int,
+                        vol.Optional("stops", default=[]): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=options,
+                                multiple=True,
+                            )
+                        )
                     }
                 ),
             )
 
-        if user_input["add_stop"]:
-            return await self.async_step_search_station(function=self.async_step_stops)
+        selected_stops = set(user_input.get("stops", []))
+        options = dict(self.config_entry.options)
+        stops = dict(options.get("stops", {}))
+        for entity in stop_entities:
+            if entity.unique_id not in selected_stops:
+                continue
+            stops.pop(entity.unique_id, None)
+            registry.async_remove(entity.entity_id)
 
-        stops = user_input.get("stops", self.config_entry.options.get("stops", {}))
-        existing_stops = self.config_entry.options.get("stops", {})
-        saved_stops = {}
-        for stop_id, data in stops.items():
-            stop_data = (
-                dict(data)
-                if isinstance(data, dict)
-                else {"name": data} if isinstance(data, str) else {}
-            )
-            stop_name = (
-                stop_data.get("name")
-                or self._pending_stop_names.get(stop_id)
-                or existing_stops.get(stop_id, {}).get("name")
-            )
-            if stop_name:
-                stop_data["name"] = stop_name
-            saved_stops[stop_id] = stop_data
-        user_input["stops"] = saved_stops
+        options["stops"] = stops
+        return await self.save(options)
 
-        return await self.save(user_input)
+    async def async_step_global_options(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure options that apply to all sensors."""
+        if user_input is not None:
+            return await self.save(user_input)
+
+        return self.async_show_form(
+            step_id="global_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "departure_limit_config",
+                        default=self.config_entry.options.get(
+                            "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
+                        ),
+                    ): vol.All(int, vol.Range(min=1))
+                }
+            ),
+        )
 
     async def async_step_trips(
         self, user_input: dict[str, str] = None, add={}

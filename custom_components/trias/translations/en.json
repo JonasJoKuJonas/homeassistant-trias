@@ -25,11 +25,35 @@
       "stop_already_exists": "A sensor for this stop already exists",
       "trip_already_exists": "A trip with the same origin and destination stops already exists"
     },
+    "abort": {
+      "no_stop_sensors": "There are no stop sensors to delete."
+    },
     "step": {
       "init": {
         "menu_options": {
           "stops": "Stops",
           "trips": "Trips"
+        }
+      },
+      "stops": {
+        "title": "Stops",
+        "menu_options": {
+          "add_stop": "Add new stop",
+          "delete_stops": "Delete stop sensors",
+          "global_options": "Global options"
+        }
+      },
+      "delete_stops": {
+        "title": "Delete stop sensors",
+        "description": "Select one or more stop sensors. They will be deleted when you save.",
+        "data": {
+          "stops": "Stops to delete"
+        }
+      },
+      "global_options": {
+        "title": "Global options",
+        "data": {
+          "departure_limit_config": "Maximum number of results"
         }
       },
       "search_station": {
@@ -41,19 +65,6 @@
         },
         "data_description": {
           "station": "Select Location you want to add \nSelect search to search again"
-        }
-      },
-      "stops": {
-        "title": "Stops",
-        "description": "Stops that will be created as Sensors",
-        "data": {
-          "stops": "Stop List",
-          "add_stop": "Add new Stop",
-          "departure_limit_config": "Maximum number of Departures"
-        },
-        "data_description": {
-          "stops": "Remove an entry to remove its sensor",
-          "add_stop": "Toggle to Search a stop"
         }
       },
       "trips": {

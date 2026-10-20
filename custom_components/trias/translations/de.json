@@ -26,11 +26,35 @@
             "stop_already_exists": "Für diese Haltestelle wurde bereits ein Sensor erstellt",
             "trip_already_exists": "Diese Verbindung mit denselben Start- und Zielhaltestellen existiert bereits"
         },
+        "abort": {
+            "no_stop_sensors": "Es sind keine Haltestellen-Sensoren vorhanden."
+        },
         "step": {
             "init": {
                 "menu_options": {
                     "stops": "Haltestellen",
                     "trips": "Verbindungen"
+                }
+            },
+            "stops": {
+                "title": "Haltestellen",
+                "menu_options": {
+                    "add_stop": "Haltestelle hinzufügen",
+                    "delete_stops": "Haltestellen-Sensoren löschen",
+                    "global_options": "Globale Optionen"
+                }
+            },
+            "delete_stops": {
+                "title": "Haltestellen-Sensoren löschen",
+                "description": "Wähle einen oder mehrere Haltestellen-Sensoren aus. Sie werden beim Speichern gelöscht.",
+                "data": {
+                    "stops": "Zu löschende Haltestellen"
+                }
+            },
+            "global_options": {
+                "title": "Globale Optionen",
+                "data": {
+                    "departure_limit_config": "Maximale Anzahl an Ergebnissen"
                 }
             },
             "search_station": {
@@ -42,19 +66,6 @@
                 },
                 "data_description": {
                     "station": "Wähle den gewünschten Ort aus. Wähle „Suchen“, um erneut zu suchen."
-                }
-            },
-            "stops": {
-                "title": "Haltestellen",
-                "description": "Haltestellen, die als Sensoren erstellt werden",
-                "data": {
-                    "stops": "Haltestellenliste",
-                    "add_stop": "Haltestelle hinzufügen",
-                    "departure_limit_config": "Maximale Anzahl an Abfahrten"
-                },
-                "data_description": {
-                    "stops": "Entferne einen Eintrag, um den Sensor zu löschen",
-                    "add_stop": "Aktivieren, um nach einer Haltestelle zu suchen"
                 }
             },
             "trips": {

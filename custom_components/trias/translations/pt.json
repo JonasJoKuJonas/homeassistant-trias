@@ -22,11 +22,35 @@
       "stop_already_exists": "Já existe um sensor para esta paragem",
       "trip_already_exists": "Já existe uma viagem com as mesmas paragens de origem e destino"
     },
+    "abort": {
+      "no_stop_sensors": "Não existem sensores de paragens para eliminar."
+    },
     "step": {
       "init": {
         "menu_options": {
           "stops": "Paragens",
           "trips": "Viagens"
+        }
+      },
+      "stops": {
+        "title": "Paragens",
+        "menu_options": {
+          "add_stop": "Adicionar nova paragem",
+          "delete_stops": "Eliminar sensores de paragens",
+          "global_options": "Opções globais"
+        }
+      },
+      "delete_stops": {
+        "title": "Eliminar sensores de paragens",
+        "description": "Selecione um ou mais sensores de paragens. Serão eliminados ao guardar.",
+        "data": {
+          "stops": "Paragens a eliminar"
+        }
+      },
+      "global_options": {
+        "title": "Opções globais",
+        "data": {
+          "departure_limit_config": "Número máximo de resultados"
         }
       },
       "search_station": {
@@ -38,18 +62,6 @@
         },
         "data_description": {
           "station": "Selecione a localização que deseja adicionar\nSelecione procurar para pesquisar novamente"
-        }
-      },
-      "stops": {
-        "title": "Paragens",
-        "description": "Paragens que serão criadas como sensores",
-        "data": {
-          "stops": "Lista de Paragens",
-          "add_stop": "Adicionar nova Paragem"
-        },
-        "data_description": {
-          "stops": "Remova uma entrada para eliminar o sensor",
-          "add_stop": "Alternar para procurar uma paragem"
         }
       },
       "trips": {

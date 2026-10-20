@@ -116,11 +116,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 stop_dict["ok"] = False
                 continue
 
-            stop_dict["name"] = (
+            station_name = (
                 station_data["LocationName"]["Text"]
                 + ", "
                 + station_data["StopPoint"]["StopPointName"]["Text"]
             )
+            stop_dict["name"] = station_name
 
             stop_dict["attrs"][ATTR_LATITUDE] = station_data["GeoPosition"]["Latitude"]
             stop_dict["attrs"][ATTR_LONGITUDE] = station_data["GeoPosition"][

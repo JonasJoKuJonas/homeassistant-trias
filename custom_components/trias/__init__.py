@@ -123,9 +123,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             stop_names.setdefault(stop_id, stop_data.get("name"))
         else:
             stop_data = {}
-        stops[stop_id] = {
-            key: value for key, value in stop_data.items() if key != "name"
-        }
+        stops[stop_id] = stop_data
 
     for stop_id in options.get("stop_ids", []):
         stops.setdefault(stop_id, {})
@@ -135,8 +133,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entity_registry, entry, stop_id, stop_names.get(stop_id)
         )
         if stop_name:
-            stop_data["name"] = stop_name
             stop_names[stop_id] = stop_name
+            stop_data.setdefault("name", stop_name)
 
     trips: dict[str, dict] = {}
     migrated_routes: set[tuple[str, str]] = set()
