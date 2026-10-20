@@ -59,7 +59,7 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
         self._stop_id = stop["id"]
         self._attr_unique_id = stop["id"]
 
-        self._name = stop["name"]
+        self._attr_name = stop["name"]
 
         self._attr_extra_state_attributes.update(stop["attrs"])
 
@@ -85,8 +85,6 @@ class TripSensor(TriasCoordinatorEntity, SensorEntity):
 
         self._trip_id = trip["id"]
         self._attr_unique_id = trip["id"]
-
-        self._name = trip["name"]
 
         self._attr_extra_state_attributes.update(trip["attrs"])
 

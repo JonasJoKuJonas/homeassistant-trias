@@ -18,7 +18,10 @@
     }
   },
   "options": {
-    "error": {},
+    "error": {
+      "stop_already_exists": "Já existe um sensor para esta paragem",
+      "trip_already_exists": "Já existe uma viagem com as mesmas paragens de origem e destino"
+    },
     "step": {
       "init": {
         "menu_options": {
@@ -41,11 +44,11 @@
         "title": "Paragens",
         "description": "Paragens que serão criadas como sensores",
         "data": {
-          "stop_id_dict": "Lista de Paragens",
+          "stops": "Lista de Paragens",
           "add_stop": "Adicionar nova Paragem"
         },
         "data_description": {
-          "stop_id_dict": "Remova a chave para eliminar o Sensor",
+          "stops": "Remova uma entrada para eliminar o sensor",
           "add_stop": "Alternar para procurar uma paragem"
         }
       },
@@ -57,7 +60,7 @@
           "add_stop": "Adicionar nova Viagem"
         },
         "data_description": {
-          "trips": "Remova a chave para eliminar o Sensor\nRenomeie a chave para renomear o Sensor",
+          "trips": "Remova uma entrada para eliminar o sensor. Renomeie o sensor no Home Assistant.",
           "add_stop": "Alternar para adicionar nova Viagem"
         }
       },

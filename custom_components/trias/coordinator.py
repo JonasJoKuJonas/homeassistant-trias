@@ -11,13 +11,13 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .trias_client.async_client import AsyncTriasClient, AuthMethod
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
-
-from .const import DEFAULT_DEPARTURE_LIMIT
+from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,17 +60,13 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         # Async Client wird später erstellt
         self.client: AsyncTriasClient | None = None
 
-        self.stop_ids: list[str] = entry.options.get("stop_ids", [])
+        self.stop_list: dict[str, dict] = entry.options.get("stops", {})
         self.departure_limit: str = entry.options.get(
             "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
         )
         self.stops: dict[dict] = {}
 
         self.trip_list: dict = entry.options.get("trips", {})
-        # {
-        #    "origin": {"id": "...", "name": "..."},
-        #    "destination": {"id": "...", "name": "..."},
-        # }
 
         self.trips: dict[dict] = {}
 
@@ -91,9 +87,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         """Set up the Trias API."""
         await self._ensure_client()
 
-        stop_id_dict = {}
-
-        for stop_id in self.stop_ids:
+        for stop_id in self.stop_list:
             stop_dict = {
                 "id": stop_id,
                 "created": False,
@@ -136,41 +130,31 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             self.stops[stop_id] = stop_dict
             self.add_stop(stop_dict)
 
-            # Update options if name changed
-            if (
-                not self._config.get("stop_id_dict", {}).get(stop_id)
-                or self._config["stop_id_dict"][stop_id] != stop_dict["name"]
-            ):
-                stop_id_dict[stop_id] = stop_dict["name"]
-
-        if stop_id_dict:
-            options = {**self._config}
-            options["stop_id_dict"] = {
-                **options.get("stop_id_dict", {}),
-                **stop_id_dict,
-            }
-            _LOGGER.info("Updated stop infos: \n%s", stop_id_dict)
-            self.hass.config_entries.async_update_entry(self._entry, options=options)
-
         if self._auth_method != self.client.auth_method:
             options = dict(self._entry.options)
             options["auth_method"] = self.client.auth_method
             self.hass.config_entries.async_update_entry(self._entry, options=options)
 
-        for trip_name, locations in self.trip_list.items():
-            trip_id = trip_name.lower().replace(" ", "-")
+        entity_registry = er.async_get(self.hass)
+        for trip_id, locations in self.trip_list.items():
+            from_location_id = locations["origin"]["id"]
+            from_location_name = locations["origin"].get("name", "")
+            to_location_id = locations["destination"]["id"]
+            to_location_name = locations["destination"].get("name", "")
 
-            if "origin" in locations and "destination" in locations:
-                # New format
-                from_location_id = locations["origin"]["id"]
-                from_location_name = locations["origin"].get("name", "")
-                to_location_id = locations["destination"]["id"]
-                to_location_name = locations["destination"].get("name", "")
-            else:
-                # Old format
-                ids = list(locations.keys())
-                from_location_id, to_location_id = ids
-                from_location_name, to_location_name = "", ""
+            registry_entity_id = entity_registry.async_get_entity_id(
+                "sensor", DOMAIN, trip_id
+            )
+            registry_entry = (
+                entity_registry.async_get(registry_entity_id)
+                if registry_entity_id is not None
+                else None
+            )
+            trip_name = (
+                registry_entry.original_name
+                if registry_entry is not None
+                else None
+            ) or f"{from_location_name} - {to_location_name}".strip(" -") or trip_id
 
             try:
                 from_station_data = await self.client.async_get_station_data(
@@ -201,25 +185,6 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 + ", "
                 + to_station_data["StopPoint"]["StopPointName"]["Text"]
             )
-
-            _LOGGER.info(from_name + " " + to_name)
-            _LOGGER.info(from_location_name + " " + to_location_name)
-
-            if from_location_name != from_name or to_location_name != to_name:
-                options = {**self._config}
-                options["trips"][trip_name] = {
-                    "origin": {"id": from_location_id, "name": from_name},
-                    "destination": {"id": to_location_id, "name": to_name},
-                    **(
-                        {"max_interchanges": locations["max_interchanges"]}
-                        if "max_interchanges" in locations
-                        else {}
-                    ),
-                }
-                _LOGGER.info("Updated trip infos: '%s'", trip_name)
-                self.hass.config_entries.async_update_entry(
-                    self._entry, options=options
-                )
 
             trip_dict = {
                 "id": trip_id,

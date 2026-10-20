@@ -22,7 +22,9 @@
     },
     "options": {
         "error": {
-            "search_error": "Fehler bei der Suche nach Haltestellen"
+            "search_error": "Fehler bei der Suche nach Haltestellen",
+            "stop_already_exists": "Für diese Haltestelle wurde bereits ein Sensor erstellt",
+            "trip_already_exists": "Diese Verbindung mit denselben Start- und Zielhaltestellen existiert bereits"
         },
         "step": {
             "init": {
@@ -46,12 +48,12 @@
                 "title": "Haltestellen",
                 "description": "Haltestellen, die als Sensoren erstellt werden",
                 "data": {
-                    "stop_id_dict": "Haltestellenliste",
+                    "stops": "Haltestellenliste",
                     "add_stop": "Haltestelle hinzufügen",
                     "departure_limit_config": "Maximale Anzahl an Abfahrten"
                 },
                 "data_description": {
-                    "stop_id_dict": "Entferne einen Eintrag, um den Sensor zu löschen",
+                    "stops": "Entferne einen Eintrag, um den Sensor zu löschen",
                     "add_stop": "Aktivieren, um nach einer Haltestelle zu suchen"
                 }
             },
@@ -63,7 +65,7 @@
                     "add_stop": "Verbindung hinzufügen"
                 },
                 "data_description": {
-                    "trips": "Entferne einen Eintrag, um den Sensor zu löschen. Benenne den Eintrag um, um den Sensor umzubenennen.",
+                    "trips": "Entferne einen Eintrag, um den Sensor zu löschen. Benenne den Sensor in Home Assistant um.",
                     "add_stop": "Aktivieren, um eine neue Verbindung hinzuzufügen"
                 }
             },

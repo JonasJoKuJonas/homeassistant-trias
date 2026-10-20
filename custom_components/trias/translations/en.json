@@ -21,7 +21,10 @@
     }
   },
   "options": {
-    "error": {},
+    "error": {
+      "stop_already_exists": "A sensor for this stop already exists",
+      "trip_already_exists": "A trip with the same origin and destination stops already exists"
+    },
     "step": {
       "init": {
         "menu_options": {
@@ -44,12 +47,12 @@
         "title": "Stops",
         "description": "Stops that will be created as Sensors",
         "data": {
-          "stop_id_dict": "Stop List",
+          "stops": "Stop List",
           "add_stop": "Add new Stop",
           "departure_limit_config": "Maximum number of Departures"
         },
         "data_description": {
-          "stop_id_dict": "Remove key to remove Sensor",
+          "stops": "Remove an entry to remove its sensor",
           "add_stop": "Toggle to Search a stop"
         }
       },
@@ -61,7 +64,7 @@
           "add_stop": "Add new Trip"
         },
         "data_description": {
-          "trips": "Remove key to remove Sensor \nRename key to rename Sensor",
+          "trips": "Remove an entry to remove its sensor. Rename the sensor in Home Assistant.",
           "add_stop": "Toggle to add new Trip"
         }
       },

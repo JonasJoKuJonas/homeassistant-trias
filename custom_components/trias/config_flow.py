@@ -10,10 +10,12 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.util import slugify
 from requests.exceptions import MissingSchema
 
-from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN
+from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN, get_trip_id
 from .trias_client import client as trias
 from .trias_client.exceptions import HttpError, InvalidApiKey, InvalidRequest
 
@@ -32,7 +34,7 @@ def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Trias API."""
 
-    VERSION = 1
+    VERSION = 2
 
     @staticmethod
     @callback
@@ -91,6 +93,66 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self) -> None:
         """Initialize options flow."""
         self._search_data = {}
+        self._pending_trip_names: dict[str, str] = {}
+        self._pending_stop_names: dict[str, str] = {}
+        self._pending_trip_locations: dict[str, dict] = {}
+
+    def _trip_already_exists(self, origin_id: str, destination_id: str) -> bool:
+        """Return whether the ordered trip is already configured."""
+        trip_id = get_trip_id(origin_id, destination_id)
+        configured_trips = self.config_entry.options.get("trips", {})
+        if trip_id in configured_trips:
+            return True
+
+        for trip in configured_trips.values():
+            if not isinstance(trip, dict):
+                continue
+            if "origin" in trip and "destination" in trip:
+                configured_origin = trip["origin"].get("id")
+                configured_destination = trip["destination"].get("id")
+            else:
+                stop_ids = [
+                    key for key in trip if key not in {"name", "max_interchanges"}
+                ]
+                if len(stop_ids) != 2:
+                    continue
+                configured_origin, configured_destination = stop_ids
+
+            if (
+                configured_origin == origin_id
+                and configured_destination == destination_id
+            ):
+                return True
+
+        return False
+
+    def _show_station_selection(
+        self,
+        search_value: str,
+        selected_station: str,
+        errors: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Show search results with an optional selection error."""
+        stop_point_names = ["search"] + list(self._search_data["stop_points"])
+        return self.async_show_form(
+            step_id="search_station",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "search_value", default=search_value
+                    ): selector.TextSelector(selector.TextSelectorConfig()),
+                    vol.Optional(
+                        "station", default=selected_station
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=stop_point_names,
+                            translation_key="station_search",
+                        )
+                    ),
+                }
+            ),
+            errors=errors or {},
+        )
 
     @property
     def config_entry(self):
@@ -119,16 +181,31 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the stops options."""
 
         if user_input is None:
-            stop_id_dict = self.config_entry.options.get("stop_id_dict", {})
-            stop_id_dict.update(add)
+            self._pending_stop_names.update(
+                {
+                    stop_id: name
+                    for stop_id, name in add.items()
+                    if isinstance(name, str)
+                }
+            )
+            stops = {
+                stop_id: data if isinstance(data, dict) else {}
+                for stop_id, data in self.config_entry.options.get("stops", {}).items()
+            }
+            stops.update(
+                {
+                    stop_id: {"name": name} if isinstance(name, str) else {}
+                    for stop_id, name in add.items()
+                }
+            )
 
             return self.async_show_form(
                 step_id="stops",
                 data_schema=vol.Schema(
                     {
                         vol.Optional(
-                            "stop_id_dict",
-                            description={"suggested_value": stop_id_dict},
+                            "stops",
+                            description={"suggested_value": stops},
                         ): selector.ObjectSelector(),
                         vol.Optional("add_stop", default=False): bool,
                         vol.Optional(
@@ -144,8 +221,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input["add_stop"]:
             return await self.async_step_search_station(function=self.async_step_stops)
 
-        if "stop_id_dict" in user_input:
-            user_input["stop_ids"] = list(user_input["stop_id_dict"].keys())
+        stops = user_input.get("stops", self.config_entry.options.get("stops", {}))
+        existing_stops = self.config_entry.options.get("stops", {})
+        saved_stops = {}
+        for stop_id, data in stops.items():
+            stop_data = (
+                dict(data)
+                if isinstance(data, dict)
+                else {"name": data} if isinstance(data, str) else {}
+            )
+            stop_name = (
+                stop_data.get("name")
+                or self._pending_stop_names.get(stop_id)
+                or existing_stops.get(stop_id, {}).get("name")
+            )
+            if stop_name:
+                stop_data["name"] = stop_name
+            saved_stops[stop_id] = stop_data
+        user_input["stops"] = saved_stops
 
         return await self.save(user_input)
 
@@ -156,7 +249,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is None:
             trip_dict = self.config_entry.options.get("trips", {})
+            trip_dict = {**trip_dict}
             trip_dict.update(add)
+            for trip_id, trip in add.items():
+                if isinstance(trip, dict):
+                    self._pending_trip_locations[trip_id] = trip
 
             return self.async_show_form(
                 step_id="trips",
@@ -176,8 +273,60 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 function=self.async_step_trip_name, count=2
             )
 
-        if "trips" in user_input:
-            pass  # validate input
+        trips = user_input.get("trips", self.config_entry.options.get("trips", {}))
+        trips = {
+            trip_key: dict(trip) if isinstance(trip, dict) else trip
+            for trip_key, trip in trips.items()
+        }
+        existing_trips = self.config_entry.options.get("trips", {})
+        registry = er.async_get(self.hass)
+        for trip_key, trip in trips.items():
+            if not isinstance(trip, dict):
+                continue
+
+            previous_trip = existing_trips.get(trip_key, {})
+            pending_trip = self._pending_trip_locations.get(trip_key, {})
+            if "origin" in trip and "destination" in trip:
+                for endpoint in ("origin", "destination"):
+                    location = dict(trip[endpoint])
+                    fallback_location = pending_trip.get(
+                        endpoint, previous_trip.get(endpoint, {})
+                    )
+                    if not location.get("name"):
+                        location["name"] = fallback_location.get("name", "")
+                    trip[endpoint] = location
+                origin_id = trip["origin"].get("id")
+                destination_id = trip["destination"].get("id")
+            else:
+                stop_ids = [
+                    key
+                    for key in trip
+                    if key not in {"name", "max_interchanges"}
+                ]
+                if len(stop_ids) != 2:
+                    trip.pop("name", None)
+                    continue
+                origin_id, destination_id = stop_ids
+
+            trip_id = get_trip_id(origin_id, destination_id)
+            trip_name = (
+                self._pending_trip_names.get(trip_id)
+                or self._pending_trip_names.get(trip_key)
+                or trip.get("name")
+            )
+            if trip_name:
+                registry.async_get_or_create(
+                    "sensor",
+                    DOMAIN,
+                    trip_id,
+                    config_entry=self.config_entry,
+                    has_entity_name=True,
+                    original_name=trip_name,
+                    suggested_object_id=slugify(trip_name),
+                )
+            trip.pop("name", None)
+
+        user_input["trips"] = trips
 
         return await self.save(user_input)
 
@@ -192,7 +341,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 data_schema=vol.Schema(
                     {
                         vol.Required("trip_name"): selector.TextSelector(),
-                        vol.Optional(
+                        vol.Required(
                             "trip",
                             description={"suggested_value": add},
                         ): selector.ObjectSelector(),
@@ -202,18 +351,44 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     }
                 ),
             )
-        else:
-            trip = {
-                user_input["trip_name"]: {
-                    "origin": user_input["trip"]["origin"],
-                    "destination": user_input["trip"]["destination"],
-                }
-            }
+
+        trip_data = user_input["trip"]
+        origin = trip_data["origin"]
+        destination = trip_data["destination"]
+        trip_id = get_trip_id(origin["id"], destination["id"])
+        if self._trip_already_exists(origin["id"], destination["id"]):
+            max_interchanges_field = vol.Optional("max_interchanges")
             if "max_interchanges" in user_input:
-                trip[user_input["trip_name"]]["max_interchanges"] = user_input[
-                    "max_interchanges"
-                ]
-            return await self.async_step_trips(None, trip)
+                max_interchanges_field = vol.Optional(
+                    "max_interchanges", default=user_input["max_interchanges"]
+                )
+            return self.async_show_form(
+                step_id="trip_name",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(
+                            "trip_name", default=user_input["trip_name"]
+                        ): selector.TextSelector(),
+                        vol.Required(
+                            "trip",
+                            description={"suggested_value": trip_data},
+                        ): selector.ObjectSelector(),
+                        max_interchanges_field: vol.All(int, vol.Range(min=0)),
+                    }
+                ),
+                errors={"base": "trip_already_exists"},
+            )
+
+        trip = {
+            trip_id: {
+                "origin": origin,
+                "destination": destination,
+            }
+        }
+        if "max_interchanges" in user_input:
+            trip[trip_id]["max_interchanges"] = user_input["max_interchanges"]
+        self._pending_trip_names[trip_id] = user_input["trip_name"]
+        return await self.async_step_trips(None, trip)
 
     async def async_step_search_station(
         self, user_input: dict[str, str] = None, function=None, count=1
@@ -286,28 +461,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         ]
                         stop_points[stop_point_name] = stop_point_id
 
-                stop_point_names = ["search"] + list(stop_points.keys())
                 self._search_data["stop_points"] = stop_points
 
-                # Show selection form
-                return self.async_show_form(
-                    step_id="search_station",
-                    data_schema=vol.Schema(
-                        {
-                            vol.Optional(
-                                "search_value",
-                                default=user_input.get("search_value", ""),
-                            ): selector.TextSelector(selector.TextSelectorConfig()),
-                            vol.Optional(
-                                "station", default="search"
-                            ): selector.SelectSelector(
-                                selector.SelectSelectorConfig(
-                                    options=stop_point_names,
-                                    translation_key="station_search",
-                                )
-                            ),
-                        }
-                    ),
+                return self._show_station_selection(
+                    user_input.get("search_value", ""), "search"
                 )
 
             except Exception as err:
@@ -329,6 +486,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         else:
             selected_name = user_input["station"]
             selected_id = self._search_data["stop_points"][selected_name]
+
+            if self._search_data["count"] == 1:
+                configured_stops = self.config_entry.options.get("stops", {})
+                if selected_id in configured_stops:
+                    return self._show_station_selection(
+                        user_input.get("search_value", ""),
+                        selected_name,
+                        errors={"base": "stop_already_exists"},
+                    )
+            elif len(self._search_data["return_data"]) == 1:
+                origin_id = next(iter(self._search_data["return_data"].values()))
+                if self._trip_already_exists(origin_id, selected_id):
+                    return self._show_station_selection(
+                        user_input.get("search_value", ""),
+                        selected_name,
+                        errors={"base": "trip_already_exists"},
+                    )
+
             self._search_data["return_data"][selected_name] = selected_id
 
             # Check if we still need more stations
