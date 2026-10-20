@@ -64,6 +64,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self.departure_limit: str = entry.options.get(
             "departure_limit_config", DEFAULT_DEPARTURE_LIMIT
         )
+        self.global_max_interchanges: int | None = entry.options.get(
+            "global_max_interchanges"
+        )
         self.stops: dict[dict] = {}
 
         self.trip_list: dict = entry.options.get("trips", {})
@@ -195,7 +198,11 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                 "name": trip_name,
                 "from": from_location_id,
                 "to": to_location_id,
-                "max_interchanges": locations.get("max_interchanges"),
+                "max_interchanges": (
+                    locations.get("max_interchanges")
+                    if locations.get("max_interchanges") is not None
+                    else self.global_max_interchanges
+                ),
                 "data": {},
                 "attrs": {
                     "from": from_name,

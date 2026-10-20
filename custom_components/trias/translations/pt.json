@@ -20,10 +20,12 @@
   "options": {
     "error": {
       "stop_already_exists": "Já existe um sensor para esta paragem",
-      "trip_already_exists": "Já existe uma viagem com as mesmas paragens de origem e destino"
+      "trip_already_exists": "Já existe uma viagem com as mesmas paragens de origem e destino",
+      "same_trip_stops": "Os pontos de início e fim têm de ser diferentes."
     },
     "abort": {
-      "no_stop_sensors": "Não existem sensores de paragens para eliminar."
+      "no_stop_sensors": "Não existem sensores de paragens para eliminar.",
+      "no_trip_sensors": "Não existem sensores de viagens configurados."
     },
     "step": {
       "init": {
@@ -64,28 +66,77 @@
           "station": "Selecione a localização que deseja adicionar\nSelecione procurar para pesquisar novamente"
         }
       },
-      "trips": {
-        "title": "Viagens",
-        "description": "Viagens que serão criadas como sensores",
+      "trip_origin": {
+        "title": "Procurar ponto de início",
+        "description": "Escolha o ponto de início e introduza o nome de uma localização para procurar.",
         "data": {
-          "trips": "Lista de Viagens",
-          "add_stop": "Adicionar nova Viagem"
+          "search_value": "Nome da Localização",
+          "station": "Ponto de início"
         },
         "data_description": {
-          "trips": "Remova uma entrada para eliminar o sensor. Renomeie o sensor no Home Assistant.",
-          "add_stop": "Alternar para adicionar nova Viagem"
+          "station": "Selecione o ponto de início pretendido. Selecione Procurar novamente para pesquisar outra vez."
+        }
+      },
+      "trip_destination": {
+        "title": "Procurar ponto de fim",
+        "description": "De {origin}\nEscolha o ponto de fim e introduza o nome de uma localização para procurar.",
+        "data": {
+          "search_value": "Nome da Localização",
+          "station": "Ponto de fim"
+        },
+        "data_description": {
+          "station": "Selecione o ponto de fim pretendido. Selecione Procurar novamente para pesquisar outra vez."
+        }
+      },
+      "trips": {
+        "title": "Viagens",
+        "menu_options": {
+          "add_trip": "Adicionar viagem",
+          "edit_trips": "Editar viagens",
+          "delete_trips": "Eliminar viagens",
+          "global_trip_options": "Opções globais de viagens"
+        }
+      },
+      "edit_trips": {
+        "title": "Editar viagens",
+        "description": "Selecione as viagens para editar uma de cada vez.",
+        "data": {
+          "trips": "Viagens a editar"
+        }
+      },
+      "edit_trip": {
+        "title": "Editar viagem",
+        "description": "Nome:\n{friendly_name}\n\nID da entidade:\n{entity_id}\n\nPercurso:\n{origin}\npara\n{destination}",
+        "data": {
+          "max_interchanges": "Número máximo de transbordos"
+        },
+        "data_description": {
+          "max_interchanges": "Deixe vazio para utilizar a configuração global"
+        }
+      },
+      "delete_trips": {
+        "title": "Eliminar viagens",
+        "description": "Selecione uma ou mais viagens para eliminar.",
+        "data": {
+          "trips": "Viagens a eliminar"
+        }
+      },
+      "global_trip_options": {
+        "title": "Opções globais de viagens",
+        "description": "Deixe vazio para desativar o filtro global de transbordos.",
+        "data": {
+          "global_max_interchanges": "Número máximo global de transbordos"
         }
       },
       "trip_name": {
         "title": "Nomear Viagens",
+        "description": "Percurso:\n{origin}\npara\n{destination}",
         "data": {
           "trip_name": "Nome da Viagem",
-          "trip": "Dados da Viagem",
           "max_interchanges": "Número máximo de transbordos"
         },
         "data_description": {
-          "trip": "Início e fim da viagem",
-          "max_interchanges": "Deixe vazio para permitir qualquer número de transbordos"
+          "max_interchanges": "Deixe vazio para utilizar a configuração global"
         }
       }
     }

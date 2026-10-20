@@ -24,10 +24,12 @@
         "error": {
             "search_error": "Fehler bei der Suche nach Haltestellen",
             "stop_already_exists": "Für diese Haltestelle wurde bereits ein Sensor erstellt",
-            "trip_already_exists": "Diese Verbindung mit denselben Start- und Zielhaltestellen existiert bereits"
+            "trip_already_exists": "Diese Verbindung mit denselben Start- und Zielhaltestellen existiert bereits",
+            "same_trip_stops": "Start- und Endpunkt dürfen nicht identisch sein."
         },
         "abort": {
-            "no_stop_sensors": "Es sind keine Haltestellen-Sensoren vorhanden."
+            "no_stop_sensors": "Es sind keine Haltestellen-Sensoren vorhanden.",
+            "no_trip_sensors": "Es sind keine Verbindungs-Sensoren vorhanden."
         },
         "step": {
             "init": {
@@ -68,28 +70,77 @@
                     "station": "Wähle den gewünschten Ort aus. Wähle „Suchen“, um erneut zu suchen."
                 }
             },
-            "trips": {
-                "title": "Verbindungen",
-                "description": "Verbindungen, die als Sensoren erstellt werden",
+            "trip_origin": {
+                "title": "Startpunkt suchen",
+                "description": "Wähle den Startpunkt aus und gib einen Ortsnamen ein, um danach zu suchen.",
                 "data": {
-                    "trips": "Verbindungsliste",
-                    "add_stop": "Verbindung hinzufügen"
+                    "search_value": "Ortsname",
+                    "station": "Startpunkt"
                 },
                 "data_description": {
-                    "trips": "Entferne einen Eintrag, um den Sensor zu löschen. Benenne den Sensor in Home Assistant um.",
-                    "add_stop": "Aktivieren, um eine neue Verbindung hinzuzufügen"
+                    "station": "Wähle den gewünschten Startpunkt aus. Wähle „Erneut suchen“, um erneut zu suchen."
+                }
+            },
+            "trip_destination": {
+                "title": "Endpunkt suchen",
+                "description": "Von {origin}\nWähle den Endpunkt aus und gib einen Ortsnamen ein, um danach zu suchen.",
+                "data": {
+                    "search_value": "Ortsname",
+                    "station": "Endpunkt"
+                },
+                "data_description": {
+                    "station": "Wähle den gewünschten Endpunkt aus. Wähle „Erneut suchen“, um erneut zu suchen."
+                }
+            },
+            "trips": {
+                "title": "Verbindungen",
+                "menu_options": {
+                    "add_trip": "Verbindung hinzufügen",
+                    "edit_trips": "Verbindungen bearbeiten",
+                    "delete_trips": "Verbindungen löschen",
+                    "global_trip_options": "Globale Verbindungsoptionen"
+                }
+            },
+            "edit_trips": {
+                "title": "Verbindungen bearbeiten",
+                "description": "Wähle die Verbindungen aus, die du nacheinander bearbeiten möchtest.",
+                "data": {
+                    "trips": "Zu bearbeitende Verbindungen"
+                }
+            },
+            "edit_trip": {
+                "title": "Verbindung bearbeiten",
+                "description": "Name:\n{friendly_name}\n\nEntity-ID:\n{entity_id}\n\nRoute:\n{origin}\nnach\n{destination}",
+                "data": {
+                    "max_interchanges": "Maximale Anzahl an Umstiegen"
+                },
+                "data_description": {
+                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden"
+                }
+            },
+            "delete_trips": {
+                "title": "Verbindungen löschen",
+                "description": "Wähle eine oder mehrere Verbindungen aus, die gelöscht werden sollen.",
+                "data": {
+                    "trips": "Zu löschende Verbindungen"
+                }
+            },
+            "global_trip_options": {
+                "title": "Globale Verbindungsoptionen",
+                "description": "Leer lassen, um den globalen Umstiegsfilter zu deaktivieren.",
+                "data": {
+                    "global_max_interchanges": "Globale maximale Anzahl an Umstiegen"
                 }
             },
             "trip_name": {
                 "title": "Verbindung benennen",
+                "description": "Route:\n{origin}\nnach\n{destination}",
                 "data": {
                     "trip_name": "Verbindungsname",
-                    "trip": "Verbindungsdaten",
                     "max_interchanges": "Maximale Anzahl an Umstiegen"
                 },
                 "data_description": {
-                    "trip": "Start und Ziel der Verbindung",
-                    "max_interchanges": "Leer lassen, um beliebig viele Umstiege zu erlauben"
+                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden"
                 }
             }
         }

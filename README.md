@@ -81,7 +81,7 @@ After the initial setup, configure your sensors through the options flow:
 2. Click **Configure** (the gear icon) on the `trias` entry
 3. In the options flow, you can add:
    - **📍 Stations**: Open the stop menu to add stops, delete one or more stop sensors, or change the global maximum number of results
-   - **🗺️ Trips**: Add journey/trip sensors for route planning between stops
+   - **🗺️ Trips**: Add, edit, and delete trip sensors; configure a global maximum number of interchanges or override it per trip
 4. Follow the prompts to select your desired stops, stations, or routes. Changes are saved when you submit each flow.
 
 ---

@@ -23,10 +23,12 @@
   "options": {
     "error": {
       "stop_already_exists": "A sensor for this stop already exists",
-      "trip_already_exists": "A trip with the same origin and destination stops already exists"
+      "trip_already_exists": "A trip with the same origin and destination stops already exists",
+      "same_trip_stops": "The start and end points must be different."
     },
     "abort": {
-      "no_stop_sensors": "There are no stop sensors to delete."
+      "no_stop_sensors": "There are no stop sensors to delete.",
+      "no_trip_sensors": "There are no trip sensors configured."
     },
     "step": {
       "init": {
@@ -67,28 +69,77 @@
           "station": "Select Location you want to add \nSelect search to search again"
         }
       },
-      "trips": {
-        "title": "Trips",
-        "description": "Trips that will be created as Sensors",
+      "trip_origin": {
+        "title": "Search start point",
+        "description": "Choose a start point, then enter a location name to search.",
         "data": {
-          "trips": "Trips List",
-          "add_stop": "Add new Trip"
+          "search_value": "Location Name",
+          "station": "Start point"
         },
         "data_description": {
-          "trips": "Remove an entry to remove its sensor. Rename the sensor in Home Assistant.",
-          "add_stop": "Toggle to add new Trip"
+          "station": "Select the start point you want to use. Select Search again to search again."
+        }
+      },
+      "trip_destination": {
+        "title": "Search end point",
+        "description": "From {origin}\nChoose an end point, then enter a location name to search.",
+        "data": {
+          "search_value": "Location Name",
+          "station": "End point"
+        },
+        "data_description": {
+          "station": "Select the end point you want to use. Select Search again to search again."
+        }
+      },
+      "trips": {
+        "title": "Trips",
+        "menu_options": {
+          "add_trip": "Add trip",
+          "edit_trips": "Edit trips",
+          "delete_trips": "Delete trips",
+          "global_trip_options": "Global trip options"
+        }
+      },
+      "edit_trips": {
+        "title": "Edit trips",
+        "description": "Select the trips to edit one after another.",
+        "data": {
+          "trips": "Trips to edit"
+        }
+      },
+      "edit_trip": {
+        "title": "Edit trip",
+        "description": "Name:\n{friendly_name}\n\nEntity ID:\n{entity_id}\n\nRoute:\n{origin}\nto\n{destination}",
+        "data": {
+          "max_interchanges": "Maximum number of interchanges"
+        },
+        "data_description": {
+          "max_interchanges": "Leave empty to use the global setting"
+        }
+      },
+      "delete_trips": {
+        "title": "Delete trips",
+        "description": "Select one or more trips to delete.",
+        "data": {
+          "trips": "Trips to delete"
+        }
+      },
+      "global_trip_options": {
+        "title": "Global trip options",
+        "description": "Leave empty to disable the global interchange filter.",
+        "data": {
+          "global_max_interchanges": "Global maximum number of interchanges"
         }
       },
       "trip_name": {
         "title": "Name Trips",
+        "description": "Route:\n{origin}\nto\n{destination}",
         "data": {
           "trip_name": "Trip Name",
-          "trip": "Trip Data",
           "max_interchanges": "Maximum number of interchanges"
         },
         "data_description": {
-          "trip": "Start and End of trip",
-          "max_interchanges": "Leave empty to allow any number of interchanges"
+          "max_interchanges": "Leave empty to use the global setting"
         }
       }
     }
