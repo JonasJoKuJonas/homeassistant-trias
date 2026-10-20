@@ -308,7 +308,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     continue
                 origin_id, destination_id = stop_ids
 
-            trip_id = get_trip_id(origin_id, destination_id)
+            trip_id = trip_key
             trip_name = (
                 self._pending_trip_names.get(trip_id)
                 or self._pending_trip_names.get(trip_key)
