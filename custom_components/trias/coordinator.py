@@ -67,6 +67,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         self.global_max_interchanges: int | None = entry.options.get(
             "global_max_interchanges"
         )
+        self.global_trip_display_limit: int = entry.options.get(
+            "global_trip_display_limit", DEFAULT_DEPARTURE_LIMIT
+        )
+        self.global_trip_api_limit: int = entry.options.get(
+            "global_trip_api_limit", DEFAULT_DEPARTURE_LIMIT
+        )
         self.stops: dict[dict] = {}
 
         self.trip_list: dict = entry.options.get("trips", {})
@@ -203,6 +209,12 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
                     if locations.get("max_interchanges") is not None
                     else self.global_max_interchanges
                 ),
+                "display_limit": locations.get(
+                    "display_limit", self.global_trip_display_limit
+                ),
+                "api_limit": locations.get(
+                    "api_limit", self.global_trip_api_limit
+                ),
                 "data": {},
                 "attrs": {
                     "from": from_name,
@@ -331,8 +343,13 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             async with async_timeout.timeout(35):  # 35s pro Trip
+                number_results = (
+                    data["api_limit"]
+                    if data.get("max_interchanges") is not None
+                    else data["display_limit"]
+                )
                 trips = await self.client.async_get_trip(
-                    data["from"], data["to"], int(self.departure_limit)
+                    data["from"], data["to"], int(number_results)
                 )
         except (asyncio.TimeoutError, ApiError) as err:
             _LOGGER.warning(f"Failed to update trip {trip_id}: {err}")
@@ -344,6 +361,8 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         if not trips:
             self.trips[trip_id]["ok"] = False
             self.trips[trip_id]["data"] = {}
+            self.trips[trip_id]["attrs"]["departures"] = []
+            self.trips[trip_id]["attrs"]["available_trips"] = 0
             return
 
         # TRĪAS liefert teils Verbindungen in der Vergangenheit: rausfiltern.
@@ -359,6 +378,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             self.trips[trip_id]["attrs"]["departures"] = []
             self.trips[trip_id]["attrs"]["available_trips"] = 0
             return
+
+        available_trips = len(trips)
+        trips = trips[: int(data["display_limit"])]
 
         # Erster Trip wird als Hauptwert verwendet (wie im alten Code)
         first_trip = trips[0]
@@ -439,7 +461,7 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
         attr["departures"] = departures
 
         # Füge zusätzlich die Anzahl der verfügbaren Trips hinzu
-        attr["available_trips"] = len(trips)
+        attr["available_trips"] = available_trips
 
         self.trips[trip_id]["data"] = trip_data
         self.trips[trip_id]["attrs"].update(attr)

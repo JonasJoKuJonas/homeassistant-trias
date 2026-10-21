@@ -24,7 +24,8 @@
     "error": {
       "stop_already_exists": "A sensor for this stop already exists",
       "trip_already_exists": "A trip with the same origin and destination stops already exists",
-      "same_trip_stops": "The start and end points must be different."
+      "same_trip_stops": "The start and end points must be different.",
+      "display_limit_exceeds_api": "The number of trips to display cannot be greater than the number of trips fetched from the API."
     },
     "abort": {
       "no_stop_sensors": "There are no stop sensors to delete.",
@@ -129,10 +130,14 @@
         "title": "Edit trip",
         "description": "Name:\n{friendly_name}\n\nEntity ID:\n{entity_id}\n\nRoute:\n{origin}\nto\n{destination}",
         "data": {
-          "max_interchanges": "Maximum number of interchanges"
+          "max_interchanges": "Maximum number of interchanges",
+          "display_limit": "Number of trips to display",
+          "api_limit": "Number of trips to fetch from the API"
         },
         "data_description": {
-          "max_interchanges": "Leave empty to use the global setting"
+          "max_interchanges": "Leave empty to use the global setting",
+          "display_limit": "How many trips are shown in the sensor attributes. Leave empty to use the global setting.",
+          "api_limit": "How many trips the API fetches for filtering by interchanges. Without an interchange filter, only the number of trips to display is fetched. Leave empty to use the global setting."
         }
       },
       "delete_trips": {
@@ -146,7 +151,13 @@
         "title": "Global trip options",
         "description": "Leave empty to disable the global interchange filter.",
         "data": {
-          "global_max_interchanges": "Global maximum number of interchanges"
+          "global_max_interchanges": "Global maximum number of interchanges",
+          "global_trip_display_limit": "Number of trips to display",
+          "global_trip_api_limit": "Number of trips to fetch from the API"
+        },
+        "data_description": {
+          "global_trip_display_limit": "How many trips are shown in the sensor attributes.",
+          "global_trip_api_limit": "How many trips the API fetches for filtering by interchanges. Without an interchange filter, only the number of trips to display is fetched."
         }
       },
       "trip_name": {
@@ -154,10 +165,14 @@
         "description": "Route:\n{origin}\nto\n{destination}",
         "data": {
           "trip_name": "Trip Name",
-          "max_interchanges": "Maximum number of interchanges"
+          "max_interchanges": "Maximum number of interchanges",
+          "display_limit": "Number of trips to display",
+          "api_limit": "Number of trips to fetch from the API"
         },
         "data_description": {
-          "max_interchanges": "Leave empty to use the global setting"
+          "max_interchanges": "Leave empty to use the global setting",
+          "display_limit": "How many trips are shown in the sensor attributes. Leave empty to use the global setting.",
+          "api_limit": "How many trips the API fetches for filtering by interchanges. Without an interchange filter, only the number of trips to display is fetched. Leave empty to use the global setting."
         }
       }
     }

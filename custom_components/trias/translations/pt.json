@@ -21,7 +21,8 @@
     "error": {
       "stop_already_exists": "Já existe um sensor para esta paragem",
       "trip_already_exists": "Já existe uma viagem com as mesmas paragens de origem e destino",
-      "same_trip_stops": "Os pontos de início e fim têm de ser diferentes."
+      "same_trip_stops": "Os pontos de início e fim têm de ser diferentes.",
+      "display_limit_exceeds_api": "O número de viagens a apresentar não pode ser superior ao número de viagens obtidas pela API."
     },
     "abort": {
       "no_stop_sensors": "Não existem sensores de paragens para eliminar.",
@@ -126,10 +127,14 @@
         "title": "Editar viagem",
         "description": "Nome:\n{friendly_name}\n\nID da entidade:\n{entity_id}\n\nPercurso:\n{origin}\npara\n{destination}",
         "data": {
-          "max_interchanges": "Número máximo de transbordos"
+          "max_interchanges": "Número máximo de transbordos",
+          "display_limit": "Número de viagens a apresentar",
+          "api_limit": "Número de viagens a obter da API"
         },
         "data_description": {
-          "max_interchanges": "Deixe vazio para utilizar a configuração global"
+          "max_interchanges": "Deixe vazio para utilizar a configuração global",
+          "display_limit": "Quantidade de viagens apresentada nos atributos do sensor. Deixe vazio para utilizar a configuração global.",
+          "api_limit": "Quantidade de viagens obtida pela API para filtrar transbordos. Sem filtro de transbordos, apenas é obtida a quantidade de viagens a apresentar. Deixe vazio para utilizar a configuração global."
         }
       },
       "delete_trips": {
@@ -143,7 +148,13 @@
         "title": "Opções globais de viagens",
         "description": "Deixe vazio para desativar o filtro global de transbordos.",
         "data": {
-          "global_max_interchanges": "Número máximo global de transbordos"
+          "global_max_interchanges": "Número máximo global de transbordos",
+          "global_trip_display_limit": "Número de viagens a apresentar",
+          "global_trip_api_limit": "Número de viagens a obter da API"
+        },
+        "data_description": {
+          "global_trip_display_limit": "Quantidade de viagens apresentada nos atributos do sensor.",
+          "global_trip_api_limit": "Quantidade de viagens obtida pela API para filtrar transbordos. Sem filtro de transbordos, apenas é obtida a quantidade de viagens a apresentar."
         }
       },
       "trip_name": {
@@ -151,10 +162,14 @@
         "description": "Percurso:\n{origin}\npara\n{destination}",
         "data": {
           "trip_name": "Nome da Viagem",
-          "max_interchanges": "Número máximo de transbordos"
+          "max_interchanges": "Número máximo de transbordos",
+          "display_limit": "Número de viagens a apresentar",
+          "api_limit": "Número de viagens a obter da API"
         },
         "data_description": {
-          "max_interchanges": "Deixe vazio para utilizar a configuração global"
+          "max_interchanges": "Deixe vazio para utilizar a configuração global",
+          "display_limit": "Quantidade de viagens apresentada nos atributos do sensor. Deixe vazio para utilizar a configuração global.",
+          "api_limit": "Quantidade de viagens obtida pela API para filtrar transbordos. Sem filtro de transbordos, apenas é obtida a quantidade de viagens a apresentar. Deixe vazio para utilizar a configuração global."
         }
       }
     }

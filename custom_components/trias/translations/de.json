@@ -25,7 +25,8 @@
             "search_error": "Fehler bei der Suche nach Haltestellen",
             "stop_already_exists": "Für diese Haltestelle wurde bereits ein Sensor erstellt",
             "trip_already_exists": "Diese Verbindung mit denselben Start- und Zielhaltestellen existiert bereits",
-            "same_trip_stops": "Start- und Endpunkt dürfen nicht identisch sein."
+            "same_trip_stops": "Start- und Endpunkt dürfen nicht identisch sein.",
+            "display_limit_exceeds_api": "Die Anzahl der anzuzeigenden Verbindungen darf nicht größer sein als die Anzahl der von der API abgerufenen Verbindungen."
         },
         "abort": {
             "no_stop_sensors": "Es sind keine Haltestellen-Sensoren vorhanden.",
@@ -130,10 +131,14 @@
                 "title": "Verbindung bearbeiten",
                 "description": "Name:\n{friendly_name}\n\nEntity-ID:\n{entity_id}\n\nRoute:\n{origin}\nnach\n{destination}",
                 "data": {
-                    "max_interchanges": "Maximale Anzahl an Umstiegen"
+                    "max_interchanges": "Maximale Anzahl an Umstiegen",
+                    "display_limit": "Anzahl der anzuzeigenden Verbindungen",
+                    "api_limit": "Anzahl der von der API abzurufenden Verbindungen"
                 },
                 "data_description": {
-                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden"
+                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden",
+                    "display_limit": "Wie viele Verbindungen in den Sensorattributen angezeigt werden. Leer lassen, um die globale Einstellung zu verwenden.",
+                    "api_limit": "Wie viele Verbindungen die API für die Filterung nach Umstiegen abfragt. Ohne Umstiegsfilter wird nur die Anzahl der anzuzeigenden Verbindungen abgefragt. Leer lassen, um die globale Einstellung zu verwenden."
                 }
             },
             "delete_trips": {
@@ -147,7 +152,13 @@
                 "title": "Globale Verbindungsoptionen",
                 "description": "Leer lassen, um den globalen Umstiegsfilter zu deaktivieren.",
                 "data": {
-                    "global_max_interchanges": "Globale maximale Anzahl an Umstiegen"
+                    "global_max_interchanges": "Globale maximale Anzahl an Umstiegen",
+                    "global_trip_display_limit": "Anzahl der anzuzeigenden Verbindungen",
+                    "global_trip_api_limit": "Anzahl der von der API abzurufenden Verbindungen"
+                },
+                "data_description": {
+                    "global_trip_display_limit": "Wie viele Verbindungen in den Sensorattributen angezeigt werden.",
+                    "global_trip_api_limit": "Wie viele Verbindungen die API für die Filterung nach Umstiegen abfragt. Ohne Umstiegsfilter wird nur die Anzahl der anzuzeigenden Verbindungen abgefragt."
                 }
             },
             "trip_name": {
@@ -155,10 +166,14 @@
                 "description": "Route:\n{origin}\nnach\n{destination}",
                 "data": {
                     "trip_name": "Verbindungsname",
-                    "max_interchanges": "Maximale Anzahl an Umstiegen"
+                    "max_interchanges": "Maximale Anzahl an Umstiegen",
+                    "display_limit": "Anzahl der anzuzeigenden Verbindungen",
+                    "api_limit": "Anzahl der von der API abzurufenden Verbindungen"
                 },
                 "data_description": {
-                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden"
+                    "max_interchanges": "Leer lassen, um die globale Einstellung zu verwenden",
+                    "display_limit": "Wie viele Verbindungen in den Sensorattributen angezeigt werden. Leer lassen, um die globale Einstellung zu verwenden.",
+                    "api_limit": "Wie viele Verbindungen die API für die Filterung nach Umstiegen abfragt. Ohne Umstiegsfilter wird nur die Anzahl der anzuzeigenden Verbindungen abgefragt. Leer lassen, um die globale Einstellung zu verwenden."
                 }
             }
         }

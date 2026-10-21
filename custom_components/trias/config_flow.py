@@ -139,7 +139,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         stop_ids = [
             stop_id
             for stop_id in trip
-            if stop_id not in {"name", "max_interchanges"}
+            if stop_id
+            not in {
+                "name",
+                "max_interchanges",
+                "display_limit",
+                "api_limit",
+            }
         ]
         if len(stop_ids) == 2:
             return (
@@ -163,7 +169,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 configured_destination = trip["destination"].get("id")
             else:
                 stop_ids = [
-                    key for key in trip if key not in {"name", "max_interchanges"}
+                    key
+                    for key in trip
+                    if key
+                    not in {
+                        "name",
+                        "max_interchanges",
+                        "display_limit",
+                        "api_limit",
+                    }
                 ]
                 if len(stop_ids) != 2:
                     continue
@@ -513,15 +527,46 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             trip_id = self._pending_trip_edits[self._pending_trip_edit_index]
             trip_data = self._pending_trip_options[trip_id]
+            global_display_limit = self.config_entry.options.get(
+                "global_trip_display_limit", DEFAULT_DEPARTURE_LIMIT
+            )
+            global_api_limit = self.config_entry.options.get(
+                "global_trip_api_limit", DEFAULT_DEPARTURE_LIMIT
+            )
+            display_limit = user_input.get(
+                "display_limit", global_display_limit
+            )
+            api_limit = user_input.get("api_limit", global_api_limit)
+            if display_limit > api_limit:
+                return self._show_edit_trip_form(
+                    trip_id,
+                    user_input,
+                    errors={"base": "display_limit_exceeds_api"},
+                )
+
             if "max_interchanges" in user_input:
                 trip_data["max_interchanges"] = user_input["max_interchanges"]
             else:
                 trip_data.pop("max_interchanges", None)
+            for key in ("display_limit", "api_limit"):
+                if key in user_input:
+                    trip_data[key] = user_input[key]
+                else:
+                    trip_data.pop(key, None)
             self._pending_trip_edit_index += 1
             if self._pending_trip_edit_index == len(self._pending_trip_edits):
                 return await self.save({"trips": self._pending_trip_options})
 
         trip_id = self._pending_trip_edits[self._pending_trip_edit_index]
+        return self._show_edit_trip_form(trip_id)
+
+    def _show_edit_trip_form(
+        self,
+        trip_id: str,
+        user_input: dict[str, Any] | None = None,
+        errors: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Show the options for a single trip."""
         trip = self._pending_trip_options.get(trip_id, {})
         origin, destination = self._trip_route_names(trip)
         registry = er.async_get(self.hass)
@@ -540,11 +585,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             schema_field = vol.Optional(
                 "max_interchanges", default=trip["max_interchanges"]
             )
+        fields: dict[Any, Any] = {
+            schema_field: vol.All(int, vol.Range(min=0)),
+        }
+        for key in ("display_limit", "api_limit"):
+            value = (user_input or {}).get(key, trip.get(key))
+            field = (
+                vol.Optional(key, default=value)
+                if value is not None
+                else vol.Optional(key)
+            )
+            fields[field] = vol.All(int, vol.Range(min=1))
         return self.async_show_form(
             step_id="edit_trip",
-            data_schema=vol.Schema(
-                {schema_field: vol.All(int, vol.Range(min=0))}
-            ),
+            data_schema=vol.Schema(fields),
+            errors=errors or {},
             description_placeholders={
                 "friendly_name": friendly_name,
                 "entity_id": entity_id or "",
@@ -600,8 +655,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_global_trip_options(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Configure the global default trip interchange limit."""
+        """Configure global trip limits."""
         if user_input is not None:
+            if (
+                user_input["global_trip_display_limit"]
+                > user_input["global_trip_api_limit"]
+            ):
+                return self._show_global_trip_options_form(
+                    user_input, errors={"base": "display_limit_exceeds_api"}
+                )
+
             options = dict(self.config_entry.options)
             if "global_max_interchanges" in user_input:
                 options["global_max_interchanges"] = user_input[
@@ -609,20 +672,58 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ]
             else:
                 options.pop("global_max_interchanges", None)
+            options["global_trip_display_limit"] = user_input[
+                "global_trip_display_limit"
+            ]
+            options["global_trip_api_limit"] = user_input["global_trip_api_limit"]
             options["toggle"] = not self.config_entry.options.get("toggle")
             return self.async_create_entry(title="", data=options)
 
-        current_value = self.config_entry.options.get("global_max_interchanges")
-        schema_field = vol.Optional("global_max_interchanges")
-        if current_value is not None:
-            schema_field = vol.Optional(
-                "global_max_interchanges", default=current_value
-            )
+        return self._show_global_trip_options_form()
+
+    def _show_global_trip_options_form(
+        self,
+        user_input: dict[str, Any] | None = None,
+        errors: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Show global trip limit settings."""
+        options = self.config_entry.options
+        max_interchanges = (
+            user_input.get("global_max_interchanges")
+            if user_input is not None
+            else options.get("global_max_interchanges")
+        )
+        max_interchanges_field = (
+            vol.Optional("global_max_interchanges", default=max_interchanges)
+            if max_interchanges is not None
+            else vol.Optional("global_max_interchanges")
+        )
         return self.async_show_form(
             step_id="global_trip_options",
             data_schema=vol.Schema(
-                {schema_field: vol.All(int, vol.Range(min=0))}
+                {
+                    max_interchanges_field: vol.All(int, vol.Range(min=0)),
+                    vol.Required(
+                        "global_trip_display_limit",
+                        default=(user_input or {}).get(
+                            "global_trip_display_limit",
+                            options.get(
+                                "global_trip_display_limit", DEFAULT_DEPARTURE_LIMIT
+                            ),
+                        ),
+                    ): vol.All(int, vol.Range(min=1)),
+                    vol.Required(
+                        "global_trip_api_limit",
+                        default=(user_input or {}).get(
+                            "global_trip_api_limit",
+                            options.get(
+                                "global_trip_api_limit", DEFAULT_DEPARTURE_LIMIT
+                            ),
+                        ),
+                    ): vol.All(int, vol.Range(min=1)),
+                }
             ),
+            errors=errors or {},
         )
 
     async def async_step_trip_name(
@@ -637,44 +738,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         trip_data = self._pending_trip_data
         origin = trip_data["origin"]
         destination = trip_data["destination"]
-        route_placeholders = {
-            "origin": origin.get("name") or origin.get("id", ""),
-            "destination": destination.get("name") or destination.get("id", ""),
-        }
-
         if user_input is None:
-            return self.async_show_form(
-                step_id="trip_name",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required("trip_name"): selector.TextSelector(),
-                        vol.Optional("max_interchanges"): vol.All(
-                            int, vol.Range(min=0)
-                        ),
-                    }
-                ),
-                description_placeholders=route_placeholders,
-            )
+            return self._show_trip_name_form()
 
         trip_id = get_trip_id(origin["id"], destination["id"])
+        if user_input.get(
+            "display_limit",
+            self.config_entry.options.get(
+                "global_trip_display_limit", DEFAULT_DEPARTURE_LIMIT
+            ),
+        ) > user_input.get(
+            "api_limit",
+            self.config_entry.options.get(
+                "global_trip_api_limit", DEFAULT_DEPARTURE_LIMIT
+            ),
+        ):
+            return self._show_trip_name_form(
+                user_input, errors={"base": "display_limit_exceeds_api"}
+            )
+
         if self._trip_already_exists(origin["id"], destination["id"]):
-            max_interchanges_field = vol.Optional("max_interchanges")
-            if "max_interchanges" in user_input:
-                max_interchanges_field = vol.Optional(
-                    "max_interchanges", default=user_input["max_interchanges"]
-                )
-            return self.async_show_form(
-                step_id="trip_name",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required(
-                            "trip_name", default=user_input["trip_name"]
-                        ): selector.TextSelector(),
-                        max_interchanges_field: vol.All(int, vol.Range(min=0)),
-                    }
-                ),
+            return self._show_trip_name_form(
+                user_input,
                 errors={"base": "trip_already_exists"},
-                description_placeholders=route_placeholders,
             )
 
         trip = {
@@ -683,6 +769,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         }
         if "max_interchanges" in user_input:
             trip["max_interchanges"] = user_input["max_interchanges"]
+        for key in ("display_limit", "api_limit"):
+            if key in user_input:
+                trip[key] = user_input[key]
 
         trips = dict(self.config_entry.options.get("trips", {}))
         trips[trip_id] = trip
@@ -696,6 +785,47 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             suggested_object_id=slugify(user_input["trip_name"]),
         )
         return await self.save({"trips": trips})
+
+    def _show_trip_name_form(
+        self,
+        user_input: dict[str, Any] | None = None,
+        errors: dict[str, str] | None = None,
+    ) -> FlowResult:
+        """Show the form for naming a trip and configuring its limits."""
+        trip_data = self._pending_trip_data
+        origin = trip_data["origin"]
+        destination = trip_data["destination"]
+        fields: dict[Any, Any] = {
+            vol.Required(
+                "trip_name",
+                default=(user_input or {}).get("trip_name", ""),
+            ): selector.TextSelector(),
+        }
+        max_interchanges = (user_input or {}).get("max_interchanges")
+        max_interchanges_field = (
+            vol.Optional("max_interchanges", default=max_interchanges)
+            if max_interchanges is not None
+            else vol.Optional("max_interchanges")
+        )
+        fields[max_interchanges_field] = vol.All(int, vol.Range(min=0))
+        for key in ("display_limit", "api_limit"):
+            value = (user_input or {}).get(key)
+            field = (
+                vol.Optional(key, default=value)
+                if value is not None
+                else vol.Optional(key)
+            )
+            fields[field] = vol.All(int, vol.Range(min=1))
+
+        return self.async_show_form(
+            step_id="trip_name",
+            data_schema=vol.Schema(fields),
+            errors=errors or {},
+            description_placeholders={
+                "origin": origin.get("name") or origin.get("id", ""),
+                "destination": destination.get("name") or destination.get("id", ""),
+            },
+        )
 
     async def async_step_search_station(
         self, user_input: dict[str, str] = None, function=None, count=1
