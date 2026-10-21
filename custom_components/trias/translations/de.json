@@ -42,8 +42,26 @@
                 "title": "Haltestellen",
                 "menu_options": {
                     "add_stop": "Haltestelle hinzufügen",
+                    "edit_stops": "Haltestellen bearbeiten",
                     "delete_stops": "Haltestellen-Sensoren löschen",
                     "global_options": "Globale Optionen"
+                }
+            },
+            "edit_stops": {
+                "title": "Haltestellen bearbeiten",
+                "description": "Wähle die Haltestellen aus, die du nacheinander bearbeiten möchtest.",
+                "data": {
+                    "stops": "Zu bearbeitende Haltestellen"
+                }
+            },
+            "edit_stop": {
+                "title": "Haltestelle bearbeiten",
+                "description": "Name:\n{friendly_name}\n\nEntity-ID:\n{entity_id}",
+                "data": {
+                    "departure_limit": "Maximale Anzahl an Ergebnissen"
+                },
+                "data_description": {
+                    "departure_limit": "Leer lassen, um die globale Einstellung zu verwenden"
                 }
             },
             "delete_stops": {

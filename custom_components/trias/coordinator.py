@@ -261,8 +261,14 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             async with async_timeout.timeout(30):  # 30s pro Stop
+                stop_options = self.stop_list.get(stop_id, {})
+                departure_limit = (
+                    stop_options.get("departure_limit", self.departure_limit)
+                    if isinstance(stop_options, dict)
+                    else self.departure_limit
+                )
                 departures = await self.client.async_get_departures(
-                    stop_id, int(self.departure_limit)
+                    stop_id, int(departure_limit)
                 )
         except (asyncio.TimeoutError, ApiError) as err:
             _LOGGER.warning(f"Failed to update stop {stop_id}: {err}")

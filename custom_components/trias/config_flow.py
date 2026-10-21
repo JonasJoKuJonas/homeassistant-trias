@@ -93,10 +93,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self) -> None:
         """Initialize options flow."""
         self._search_data = {}
+        self._pending_stop_edits: list[str] = []
+        self._pending_stop_edit_index = 0
+        self._pending_stop_options: dict[str, Any] = {}
         self._pending_trip_edits: list[str] = []
         self._pending_trip_edit_index = 0
         self._pending_trip_options: dict[str, Any] = {}
         self._pending_trip_data: dict[str, Any] = {}
+
+    def _configured_stop_entities(self) -> list[Any]:
+        """Return registered sensor entities for configured stops."""
+        registry = er.async_get(self.hass)
+        stop_ids = self.config_entry.options.get("stops", {})
+        return [
+            entity
+            for entity in registry.entities.values()
+            if entity.config_entry_id == self.config_entry.entry_id
+            and entity.domain == "sensor"
+            and entity.unique_id in stop_ids
+        ]
 
     def _configured_trip_entities(self) -> list[Any]:
         """Return registered sensor entities for configured trips."""
@@ -231,16 +246,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Show the stops options menu."""
-        registry = er.async_get(self.hass)
-        stop_ids = self.config_entry.options.get("stops", {})
+        stop_entities = self._configured_stop_entities()
         menu_options = ["add_stop"]
-        if any(
-            entity.config_entry_id == self.config_entry.entry_id
-            and entity.domain == "sensor"
-            and entity.unique_id in stop_ids
-            for entity in registry.entities.values()
-        ):
-            menu_options.append("delete_stops")
+        if stop_entities:
+            menu_options.extend(["edit_stops", "delete_stops"])
         menu_options.append("global_options")
         return self.async_show_menu(step_id="stops", menu_options=menu_options)
 
@@ -265,14 +274,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Delete one or more configured stop sensors."""
         registry = er.async_get(self.hass)
-        stop_ids = self.config_entry.options.get("stops", {})
-        stop_entities = [
-            entity
-            for entity in registry.entities.values()
-            if entity.config_entry_id == self.config_entry.entry_id
-            and entity.domain == "sensor"
-            and entity.unique_id in stop_ids
-        ]
+        stop_entities = self._configured_stop_entities()
         if not stop_entities:
             return self.async_abort(reason="no_stop_sensors")
 
@@ -314,6 +316,97 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         options["stops"] = stops
         return await self.save(options)
+
+    async def async_step_edit_stops(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Select stops to edit in sequence."""
+        stop_entities = self._configured_stop_entities()
+        if not stop_entities:
+            return self.async_abort(reason="no_stop_sensors")
+
+        if user_input is not None:
+            configured_stops = self.config_entry.options.get("stops", {})
+            self._pending_stop_edits = [
+                stop_id
+                for stop_id in user_input.get("stops", [])
+                if isinstance(configured_stops.get(stop_id), dict)
+            ]
+            self._pending_stop_edit_index = 0
+            self._pending_stop_options = {
+                stop_id: dict(stop) if isinstance(stop, dict) else stop
+                for stop_id, stop in configured_stops.items()
+            }
+            if not self._pending_stop_edits:
+                return await self.save({})
+            return await self.async_step_edit_stop()
+
+        options = []
+        for entity in stop_entities:
+            state = self.hass.states.get(entity.entity_id)
+            friendly_name = (
+                state.attributes.get("friendly_name") if state else None
+            ) or entity.original_name or entity.entity_id
+            options.append(
+                {
+                    "label": f"{friendly_name} ({entity.entity_id})",
+                    "value": entity.unique_id,
+                }
+            )
+        return self.async_show_form(
+            step_id="edit_stops",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("stops", default=[]): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=options, multiple=True)
+                    )
+                }
+            ),
+        )
+
+    async def async_step_edit_stop(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit the result limit for each selected stop."""
+        if user_input is not None:
+            stop_id = self._pending_stop_edits[self._pending_stop_edit_index]
+            stop_data = self._pending_stop_options[stop_id]
+            if "departure_limit" in user_input:
+                stop_data["departure_limit"] = user_input["departure_limit"]
+            else:
+                stop_data.pop("departure_limit", None)
+            self._pending_stop_edit_index += 1
+            if self._pending_stop_edit_index == len(self._pending_stop_edits):
+                return await self.save({"stops": self._pending_stop_options})
+
+        stop_id = self._pending_stop_edits[self._pending_stop_edit_index]
+        stop = self._pending_stop_options.get(stop_id, {})
+        registry = er.async_get(self.hass)
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, stop_id)
+        registry_entity = registry.async_get(entity_id) if entity_id else None
+        state = self.hass.states.get(entity_id) if entity_id else None
+        friendly_name = (
+            state.attributes.get("friendly_name") if state else None
+        ) or (
+            registry_entity.original_name
+            if registry_entity is not None
+            else entity_id or stop_id
+        )
+        schema_field = vol.Optional("departure_limit")
+        if stop.get("departure_limit") is not None:
+            schema_field = vol.Optional(
+                "departure_limit", default=stop["departure_limit"]
+            )
+        return self.async_show_form(
+            step_id="edit_stop",
+            data_schema=vol.Schema(
+                {schema_field: vol.All(int, vol.Range(min=1))}
+            ),
+            description_placeholders={
+                "friendly_name": friendly_name,
+                "entity_id": entity_id or "",
+            },
+        )
 
     async def async_step_global_options(
         self, user_input: dict[str, Any] | None = None

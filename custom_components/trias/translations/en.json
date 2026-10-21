@@ -41,8 +41,26 @@
         "title": "Stops",
         "menu_options": {
           "add_stop": "Add new stop",
+          "edit_stops": "Edit stops",
           "delete_stops": "Delete stop sensors",
           "global_options": "Global options"
+        }
+      },
+      "edit_stops": {
+        "title": "Edit stops",
+        "description": "Select the stops to edit one after another.",
+        "data": {
+          "stops": "Stops to edit"
+        }
+      },
+      "edit_stop": {
+        "title": "Edit stop",
+        "description": "Name:\n{friendly_name}\n\nEntity ID:\n{entity_id}",
+        "data": {
+          "departure_limit": "Maximum number of results"
+        },
+        "data_description": {
+          "departure_limit": "Leave empty to use the global setting"
         }
       },
       "delete_stops": {
