@@ -9,22 +9,29 @@
 
 ---
 
-## 📖 Overview
+## ⚡ Key Features
 
-**Trias** is a custom integration for Home Assistant that connects to the [Trias API](https://www.vdv.de/trias.aspx)
-
-With this integration, you can:
-
-- **Display real-time departure times** for buses, trams, and trains at specific stations
-- **Plan journeys** between stops and get accurate arrival forecasts
-- **Monitor public transport** directly from your Home Assistant dashboard
+* **Real-time Departure Board:** Live departure times, line details, and delays in minutes
+* **Journey & Route Planning:** Query connection details between start and destination stops
+* **Dashboard Ready:** Designed to work seamlessly with [Departure Card](https://github.com/BagelBeef/ha-departureCard)
 
 ---
 
-## 🌍 Supported Providers
+## 🗺️ Supported Transit Providers & Regions
 
-This integration supports multiple Trias-compliant public transport providers. For a list, visit the [Trias Providers Documentation](https://github.com/andaryjo/trias-client/blob/main/docs/PROVIDERS.md).
+This integration works with any public transport authority implementing the **TRIAS (VDV 431)** standard
 
+> **Note on API Keys:** While most providers offer public access, some require a free registration or an API key request via email
+
+| Country / Region | Provider / Authority | Short Code | Status & Registration / Access Link |
+| :--- | :--- | :---: | :--- |
+| 🇩🇪 **Baden-Württemberg** | NVBW / MobiData BW (Statewide) | **NVBW** | ✅ [MobiData BW TRIAS Dataset](https://mobidata-bw.de/dataset/trias) (via Email) |
+| 🇩🇪 **Stuttgart & Region** | Verkehrs- und Tarifverbund Stuttgart | **VVS** | ✅ [VVS TRIAS API Dataset](https://www.opendata-oepnv.de/ht/de/organisation/verkehrsverbuende/vvs/startseite?tx_vrrkit_view%5Baction%5D=details&tx_vrrkit_view%5Bcontroller%5D=View&tx_vrrkit_view%5Bdataset_name%5D=trias-api-vvs) (via Email) |
+| 🇩🇪 **Karlsruhe & Region** | Karlsruher Verkehrsverbund | **KVV** | ✅ [KVV Open Data Portal](https://www.kvv.de/fahrplan/fahrplaene/open-data.html) (via Email & Form) |
+| 🇩🇪 **Rhein-Neckar** | Verkehrsverbund Rhein-Neckar | **VRN** | ✅ [VRN Open Service TRIAS](https://opendata.vrn.de/datasets/open-service-trias-schnittstelle) (via Email) |
+| 🇩🇪 **Rhine-Ruhr / NRW** | Verkehrsverbund Rhein-Ruhr | **VRR** | ✅ [VRR / OpenData NRW Portal](https://www.opendata-oepnv.de/) (via Email) |
+| 🇩🇪 **Bremen & Lower Saxony**| Verkehrsverbund Bremen/Niedersachsen | **VBN** | ✅ [VBN Developer Info](https://www.vbn.de/service/entwicklerinfos/open-data-und-open-service) (via Email) |
+| 🇩🇪 **Munich & Upper Bavaria**| Münchner Verkehrs- und Tarifverbund | **MVV** | ⏳ [MVV Developer Portal](https://www.mvv-muenchen.de/service-hilfe/mvv-content-fuer-entwickler/) (Coming soon) |
 ---
 
 ## 📥 Installation
