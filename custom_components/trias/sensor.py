@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, get_entity_unique_id
 from .entity import TriasCoordinatorEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ async def async_setup_entry(
         sensor = StopSensor(
             stop,
             coordinator,
+            entry,
         )
         entities.append(sensor)
         _LOGGER.debug("Added sensors '%s'", stop["name"])
@@ -38,6 +39,7 @@ async def async_setup_entry(
         sensor = TripSensor(
             trip,
             coordinator,
+            entry,
         )
         entities.append(sensor)
         _LOGGER.debug("Added sensors '%s'", trip["name"])
@@ -51,13 +53,13 @@ class StopSensor(TriasCoordinatorEntity, SensorEntity):
     device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:bus-stop"
 
-    def __init__(self, stop, coordinator):
+    def __init__(self, stop, coordinator, entry: ConfigEntry):
         """Initialize the sensor."""
-        super().__init__(coordinator, stop)
+        super().__init__(coordinator, stop, entry)
         self.coordinator = coordinator
 
         self._stop_id = stop["id"]
-        self._attr_unique_id = stop["id"]
+        self._attr_unique_id = get_entity_unique_id(entry.entry_id, stop["id"])
 
         self._attr_name = stop["name"]
 
@@ -78,13 +80,13 @@ class TripSensor(TriasCoordinatorEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:bus-clock"
 
-    def __init__(self, trip, coordinator):
+    def __init__(self, trip, coordinator, entry: ConfigEntry):
         """Initialize the sensor."""
-        super().__init__(coordinator, trip)
+        super().__init__(coordinator, trip, entry)
         self.coordinator = coordinator
 
         self._trip_id = trip["id"]
-        self._attr_unique_id = trip["id"]
+        self._attr_unique_id = get_entity_unique_id(entry.entry_id, trip["id"])
 
         self._attr_extra_state_attributes.update(trip["attrs"])
 

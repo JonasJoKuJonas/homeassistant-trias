@@ -15,7 +15,12 @@ from homeassistant.helpers import selector
 from homeassistant.util import slugify
 from requests.exceptions import MissingSchema
 
-from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN, get_trip_id
+from .const import (
+    DEFAULT_DEPARTURE_LIMIT,
+    DOMAIN,
+    get_entity_unique_id,
+    get_trip_id,
+)
 from .trias_client import client as trias
 from .trias_client.exceptions import HttpError, InvalidApiKey, InvalidRequest
 
@@ -34,7 +39,7 @@ def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Trias API."""
 
-    VERSION = 2
+    VERSION = 3
 
     @staticmethod
     @callback
@@ -105,25 +110,45 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Return registered sensor entities for configured stops."""
         registry = er.async_get(self.hass)
         stop_ids = self.config_entry.options.get("stops", {})
+        entity_unique_ids = {
+            get_entity_unique_id(self.config_entry.entry_id, stop_id)
+            for stop_id in stop_ids
+        }
         return [
             entity
             for entity in registry.entities.values()
             if entity.config_entry_id == self.config_entry.entry_id
             and entity.domain == "sensor"
-            and entity.unique_id in stop_ids
+            and entity.unique_id in entity_unique_ids
         ]
 
     def _configured_trip_entities(self) -> list[Any]:
         """Return registered sensor entities for configured trips."""
         registry = er.async_get(self.hass)
         trip_ids = self.config_entry.options.get("trips", {})
+        entity_unique_ids = {
+            get_entity_unique_id(self.config_entry.entry_id, trip_id)
+            for trip_id in trip_ids
+        }
         return [
             entity
             for entity in registry.entities.values()
             if entity.config_entry_id == self.config_entry.entry_id
             and entity.domain == "sensor"
-            and entity.unique_id in trip_ids
+            and entity.unique_id in entity_unique_ids
         ]
+
+    def _configured_id_for_entity(
+        self, entity: Any, configured_ids: dict[str, Any]
+    ) -> str:
+        """Return the option key corresponding to a configured entity."""
+        for configured_id in configured_ids:
+            if (
+                get_entity_unique_id(self.config_entry.entry_id, configured_id)
+                == entity.unique_id
+            ):
+                return configured_id
+        raise ValueError(f"Entity {entity.entity_id} is not configured in this entry")
 
     @staticmethod
     def _trip_route_names(trip: dict[str, Any]) -> tuple[str, str]:
@@ -302,7 +327,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 options.append(
                     {
                         "label": f"{friendly_name} ({entity.entity_id})",
-                        "value": entity.unique_id,
+                        "value": self._configured_id_for_entity(
+                            entity, self.config_entry.options.get("stops", {})
+                        ),
                     }
                 )
             return self.async_show_form(
@@ -322,11 +349,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         selected_stops = set(user_input.get("stops", []))
         options = dict(self.config_entry.options)
         stops = dict(options.get("stops", {}))
-        for entity in stop_entities:
-            if entity.unique_id not in selected_stops:
-                continue
-            stops.pop(entity.unique_id, None)
-            registry.async_remove(entity.entity_id)
+        for stop_id in selected_stops:
+            stops.pop(stop_id, None)
+            entity_id = registry.async_get_entity_id(
+                "sensor",
+                DOMAIN,
+                get_entity_unique_id(self.config_entry.entry_id, stop_id),
+            )
+            if entity_id is not None:
+                registry.async_remove(entity_id)
 
         options["stops"] = stops
         return await self.save(options)
@@ -364,7 +395,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             options.append(
                 {
                     "label": f"{friendly_name} ({entity.entity_id})",
-                    "value": entity.unique_id,
+                    "value": self._configured_id_for_entity(
+                        entity, self.config_entry.options.get("stops", {})
+                    ),
                 }
             )
         return self.async_show_form(
@@ -396,7 +429,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         stop_id = self._pending_stop_edits[self._pending_stop_edit_index]
         stop = self._pending_stop_options.get(stop_id, {})
         registry = er.async_get(self.hass)
-        entity_id = registry.async_get_entity_id("sensor", DOMAIN, stop_id)
+        entity_id = registry.async_get_entity_id(
+            "sensor",
+            DOMAIN,
+            get_entity_unique_id(self.config_entry.entry_id, stop_id),
+        )
         registry_entity = registry.async_get(entity_id) if entity_id else None
         state = self.hass.states.get(entity_id) if entity_id else None
         friendly_name = (
@@ -505,7 +542,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             options.append(
                 {
                     "label": f"{friendly_name} ({entity.entity_id})",
-                    "value": entity.unique_id,
+                    "value": self._configured_id_for_entity(
+                        entity, self.config_entry.options.get("trips", {})
+                    ),
                 }
             )
         return self.async_show_form(
@@ -570,7 +609,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         trip = self._pending_trip_options.get(trip_id, {})
         origin, destination = self._trip_route_names(trip)
         registry = er.async_get(self.hass)
-        entity_id = registry.async_get_entity_id("sensor", DOMAIN, trip_id)
+        entity_id = registry.async_get_entity_id(
+            "sensor",
+            DOMAIN,
+            get_entity_unique_id(self.config_entry.entry_id, trip_id),
+        )
         registry_entity = registry.async_get(entity_id) if entity_id else None
         state = self.hass.states.get(entity_id) if entity_id else None
         friendly_name = (
@@ -626,7 +669,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 options.append(
                     {
                         "label": f"{friendly_name} ({entity.entity_id})",
-                        "value": entity.unique_id,
+                        "value": self._configured_id_for_entity(
+                            entity, self.config_entry.options.get("trips", {})
+                        ),
                     }
                 )
             return self.async_show_form(
@@ -646,10 +691,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         selected_trips = set(user_input.get("trips", []))
         trips = dict(self.config_entry.options.get("trips", {}))
         registry = er.async_get(self.hass)
-        for entity in trip_entities:
-            if entity.unique_id in selected_trips:
-                trips.pop(entity.unique_id, None)
-                registry.async_remove(entity.entity_id)
+        for trip_id in selected_trips:
+            trips.pop(trip_id, None)
+            entity_id = registry.async_get_entity_id(
+                "sensor",
+                DOMAIN,
+                get_entity_unique_id(self.config_entry.entry_id, trip_id),
+            )
+            if entity_id is not None:
+                registry.async_remove(entity_id)
         return await self.save({"trips": trips})
 
     async def async_step_global_trip_options(
@@ -778,7 +828,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         er.async_get(self.hass).async_get_or_create(
             "sensor",
             DOMAIN,
-            trip_id,
+            get_entity_unique_id(self.config_entry.entry_id, trip_id),
             config_entry=self.config_entry,
             has_entity_name=True,
             original_name=user_input["trip_name"],

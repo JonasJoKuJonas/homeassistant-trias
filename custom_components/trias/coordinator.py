@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .trias_client.async_client import AsyncTriasClient, AuthMethod
 from .trias_client.exceptions import ApiError, InvalidLocationName, HttpError
 from homeassistant.exceptions import ConfigEntryNotReady
-from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN
+from .const import DEFAULT_DEPARTURE_LIMIT, DOMAIN, get_entity_unique_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,7 +153,9 @@ class TriasDataUpdateCoordinator(DataUpdateCoordinator):
             to_location_name = locations["destination"].get("name", "")
 
             registry_entity_id = entity_registry.async_get_entity_id(
-                "sensor", DOMAIN, trip_id
+                "sensor",
+                DOMAIN,
+                get_entity_unique_id(self._entry.entry_id, trip_id),
             )
             registry_entry = (
                 entity_registry.async_get(registry_entity_id)
